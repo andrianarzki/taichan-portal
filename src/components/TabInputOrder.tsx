@@ -20,8 +20,10 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-const DINE_IN_CHIPS = ['Meja 01', 'Meja 02', 'Meja 03', 'Meja 04'];
-const TAKEAWAY_CHIPS = ['Takeaway', 'Takeaway 01', 'Takeaway 02', 'Bungkus'];
+const DINE_IN_TABLES = [
+  'Meja 01', 'Meja 02', 'Meja 03', 'Meja 04', 'Meja 05',
+  'Meja 06', 'Meja 07', 'Meja 08', 'Meja 09', 'Meja 10'
+];
 
 export const TabInputOrder: React.FC = () => {
   const {
@@ -55,7 +57,7 @@ export const TabInputOrder: React.FC = () => {
   );
 
   // Available dine-in chips (excluding tables with active orders in kitchen)
-  const availableDineInChips = DINE_IN_CHIPS.filter(
+  const availableDineInChips = DINE_IN_TABLES.filter(
     (chip) => !occupiedTables.has(chip.toLowerCase())
   );
 
@@ -259,60 +261,61 @@ export const TabInputOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Quick chips */}
-          <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-0.5">
-            {orderType === 'dine-in' ? (
-              availableDineInChips.length > 0 ? (
-                availableDineInChips.map((chip) => {
-                  const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
-                  return (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => handleQuickChipSelect(chip)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
-                        isSelected
-                          ? 'bg-brand-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      {chip}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="w-full text-center py-2 px-3 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
-                  ⚠️ Semua meja (01-04) sedang digunakan di Dapur. Selesaikan di tab Dapur atau pilih Takeaway.
+          {/* Quick Table Selector for Dine-In (Meja 01 s/d 10) */}
+          {orderType === 'dine-in' && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5 px-0.5">
+                <span>PILIH MEJA CEPAT (01 - 10):</span>
+                <span className="text-[10px] text-brand-600 font-extrabold">
+                  {availableDineInChips.length} Meja Tersedia
+                </span>
+              </div>
+
+              {availableDineInChips.length > 0 ? (
+                <div className="grid grid-cols-5 gap-1.5">
+                  {availableDineInChips.map((chip) => {
+                    const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
+                    return (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => handleQuickChipSelect(chip)}
+                        className={`py-2 px-1 rounded-xl text-xs font-black transition-all text-center ${
+                          isSelected
+                            ? 'bg-brand-600 text-white shadow-xs scale-102 ring-2 ring-brand-600/30'
+                            : 'bg-slate-100 text-slate-800 hover:bg-slate-200 active:scale-95'
+                        }`}
+                      >
+                        {chip}
+                      </button>
+                    );
+                  })}
                 </div>
-              )
-            ) : (
-              TAKEAWAY_CHIPS.map((chip) => {
-                const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
-                return (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => handleQuickChipSelect(chip)}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-brand-600 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {chip}
-                  </button>
-                );
-              })
-            )}
-            <button
-              type="button"
-              onClick={handleClearTableInput}
-              title="Reset"
-              className="p-2 rounded-lg text-slate-400 bg-slate-100 hover:bg-slate-200 hover:text-slate-600 transition-colors shrink-0"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              ) : (
+                <div className="w-full text-center py-2.5 px-3 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200">
+                  ⚠️ Semua meja (01-10) sedang terisi di Dapur. Selesaikan di tab Dapur atau pilih Takeaway.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Automated Takeaway Info (No manual Takeaway 1 / 2 chips needed) */}
+          {orderType === 'takeaway' && (
+            <div className="mt-3 p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🛍️</span>
+                <div>
+                  <span className="text-xs font-black text-amber-950 block">Pesanan Bawa Pulang (Takeaway)</span>
+                  <span className="text-[10px] text-amber-800 font-medium block">
+                    Nomor antrean (Takeaway 1, Takeaway 2, dst.) otomatis dibuatkan di Dapur.
+                  </span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900 font-black text-[10px]">
+                Otomatis
+              </span>
+            </div>
+          )}
         </section>
 
         {/* 2. Katalog Menu */}

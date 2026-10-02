@@ -1,22 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Order } from '../types';
-import { formatRupiah, formatTimeWIB, formatRelativeTime } from '../utils/format';
+import { formatRupiah, formatTimeWIB } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
 import { 
   Clock, 
   CheckCircle, 
   Printer, 
-  UtensilsCrossed, 
-  Sparkles,
   ArrowRight,
-  Flame,
   ChefHat
 } from 'lucide-react';
 
 export const TabKitchenOrders: React.FC = () => {
   const { setActiveTab, openThermalSlip, effectiveOnline, performSync } = useAppStore();
+  const [kitchenTab, setKitchenTab] = useState<'all' | 'dine-in' | 'takeaway'>('all');
 
   // Live query active orders sorted by createdAt ASC (FIFO)
   const activeOrders = useLiveQuery(
@@ -28,6 +26,21 @@ export const TabKitchenOrders: React.FC = () => {
     [],
     []
   );
+
+  const isTakeawayOrder = (order: Order) => {
+    const info = order.tableInfo.toLowerCase();
+    return info.includes('takeaway') || info.includes('bungkus');
+  };
+
+  const allActiveOrders = activeOrders || [];
+  const dineInOrders = allActiveOrders.filter((o) => !isTakeawayOrder(o));
+  const takeawayOrders = allActiveOrders.filter((o) => isTakeawayOrder(o));
+
+  // Map to assign automatic Takeaway queue numbers: Takeaway 1, Takeaway 2, etc.
+  const takeawayNumberMap = new Map<string, number>();
+  takeawayOrders.forEach((o, index) => {
+    takeawayNumberMap.set(o.id, index + 1);
+  });
 
   const handleCompleteOrder = async (order: Order) => {
     try {
@@ -60,11 +73,11 @@ export const TabKitchenOrders: React.FC = () => {
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <h3 className="font-extrabold text-sm text-slate-800">
-                  Antrean Dapur: <span className="text-brand-600">{activeOrders.length} Aktif</span>
+                  Antrean Dapur: <span className="text-brand-600">{allActiveOrders.length} Aktif</span>
                 </h3>
               </div>
               <p className="text-[11px] font-semibold text-slate-400">
-                Prioritas FIFO (First In, First Out)
+                Prioritas FIFO ({dineInOrders.length} Meja, {takeawayOrders.length} Takeaway)
               </p>
             </div>
           </div>
@@ -76,8 +89,45 @@ export const TabKitchenOrders: React.FC = () => {
           </div>
         </section>
 
+        {/* Pemisah Sub-Tab Dapur: Semua | Meja | Takeaway */}
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setKitchenTab('all')}
+            className={`py-2 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 ${
+              kitchenTab === 'all'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Semua ({allActiveOrders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setKitchenTab('dine-in')}
+            className={`py-2 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 ${
+              kitchenTab === 'dine-in'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>🍽️</span> Meja ({dineInOrders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setKitchenTab('takeaway')}
+            className={`py-2 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 ${
+              kitchenTab === 'takeaway'
+                ? 'bg-brand-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>🛍️</span> Takeaway ({takeawayOrders.length})
+          </button>
+        </div>
+
         {/* List of active orders */}
-        {activeOrders.length === 0 ? (
+        {allActiveOrders.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/90 p-8 text-center shadow-soft space-y-3">
             <div className="w-14 h-14 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <CheckCircle className="w-7 h-7" />
@@ -97,16 +147,107 @@ export const TabKitchenOrders: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-3.5">
-            {activeOrders.map((order, idx) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                queueNumber={idx + 1}
-                onComplete={() => handleCompleteOrder(order)}
-                onPrint={() => openThermalSlip(order)}
-              />
-            ))}
+          <div className="space-y-4">
+            
+            {/* View Mode: ALL - Separate sections for Meja and Takeaway */}
+            {kitchenTab === 'all' && (
+              <>
+                {/* Section A: Dine In / Meja */}
+                {dineInOrders.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs font-black text-slate-800 tracking-wide flex items-center gap-1.5 uppercase">
+                        <span>🍽️</span> Pesanan Meja (Dine In)
+                      </h4>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                        {dineInOrders.length} Pesanan
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {dineInOrders.map((order, idx) => (
+                        <OrderCard
+                          key={order.id}
+                          order={order}
+                          queueNumber={idx + 1}
+                          onComplete={() => handleCompleteOrder(order)}
+                          onPrint={() => openThermalSlip(order)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section B: Takeaway */}
+                {takeawayOrders.length > 0 && (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs font-black text-amber-900 tracking-wide flex items-center gap-1.5 uppercase">
+                        <span>🛍️</span> Pesanan Takeaway (Bungkus)
+                      </h4>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                        {takeawayOrders.length} Pesanan
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {takeawayOrders.map((order, idx) => (
+                        <OrderCard
+                          key={order.id}
+                          order={order}
+                          queueNumber={idx + 1}
+                          takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
+                          onComplete={() => handleCompleteOrder(order)}
+                          onPrint={() => openThermalSlip(order)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* View Mode: DINE IN ONLY */}
+            {kitchenTab === 'dine-in' && (
+              dineInOrders.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-xs text-slate-400">
+                  Tidak ada antrean pesanan makan di meja saat ini.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dineInOrders.map((order, idx) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      queueNumber={idx + 1}
+                      onComplete={() => handleCompleteOrder(order)}
+                      onPrint={() => openThermalSlip(order)}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* View Mode: TAKEAWAY ONLY */}
+            {kitchenTab === 'takeaway' && (
+              takeawayOrders.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-xs text-slate-400">
+                  Tidak ada antrean pesanan takeaway (bungkus) saat ini.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {takeawayOrders.map((order, idx) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      queueNumber={idx + 1}
+                      takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
+                      onComplete={() => handleCompleteOrder(order)}
+                      onPrint={() => openThermalSlip(order)}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
           </div>
         )}
 
@@ -119,11 +260,27 @@ export const TabKitchenOrders: React.FC = () => {
 interface OrderCardProps {
   order: Order;
   queueNumber: number;
+  takeawayIndex?: number;
   onComplete: () => void;
   onPrint: () => void;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, onComplete, onPrint }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, takeawayIndex, onComplete, onPrint }) => {
+  const isTakeaway = order.tableInfo.toLowerCase().includes('takeaway') || order.tableInfo.toLowerCase().includes('bungkus');
+
+  // Format label: Takeaway 1, Takeaway 2, or Meja 01
+  const getTableLabel = () => {
+    if (isTakeaway) {
+      const customerExtra = order.tableInfo
+        .replace(/takeaway|bungkus/gi, '')
+        .replace(/^[\s\-:]+/, '')
+        .trim();
+      const numLabel = takeawayIndex ? `Takeaway ${takeawayIndex}` : 'Takeaway';
+      return customerExtra ? `${numLabel} (${customerExtra})` : numLabel;
+    }
+    return order.tableInfo;
+  };
+
   return (
     <article className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-soft hover:border-slate-300 transition-all space-y-3">
       
@@ -135,13 +292,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, onComplete, o
             {order.id}
           </span>
           {/* Table / Takeaway Info */}
-          {order.tableInfo.toLowerCase().includes('takeaway') || order.tableInfo.toLowerCase().includes('bungkus') ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500 text-white font-black text-xs tracking-wide shadow-2xs">
-              🛍️ {order.tableInfo.toUpperCase()}
+          {isTakeaway ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-500 text-white font-black text-xs tracking-wide shadow-2xs">
+              🛍️ {getTableLabel().toUpperCase()}
             </span>
           ) : (
             <span className="font-extrabold text-[15px] text-slate-900 uppercase">
-              {order.tableInfo}
+              🍽️ {order.tableInfo}
             </span>
           )}
         </div>

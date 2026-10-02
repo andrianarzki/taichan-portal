@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { 
-  getSupabaseCredentials, 
-  saveSupabaseCredentials, 
-  isSupabaseActive 
-} from '../services/supabase';
 import { db, seedInitialDataIfEmpty } from '../db';
 import { 
   Settings, 
   X, 
   Wifi, 
   WifiOff, 
-  Database, 
   RotateCcw, 
-  Check, 
-  RefreshCw
+  Check 
 } from 'lucide-react';
 
 export const ProfileSettingsModal: React.FC = () => {
@@ -28,18 +21,9 @@ export const ProfileSettingsModal: React.FC = () => {
     checkPendingSync
   } = useAppStore();
 
-  const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseCredentials().url);
-  const [supabaseKey, setSupabaseKey] = useState(() => getSupabaseCredentials().key);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
   if (!isProfileOpen) return null;
-
-  const handleSaveProfile = () => {
-    saveSupabaseCredentials(supabaseUrl, supabaseKey);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
-  };
 
   const handleResetData = async () => {
     if (confirm('Apakah Anda yakin ingin memuat ulang data demo awal Taichan Portal? Semua antrean baru akan diatur ulang.')) {
@@ -113,46 +97,7 @@ export const ProfileSettingsModal: React.FC = () => {
           </p>
         </div>
 
-        {/* Section 2: Supabase Cloud Database */}
-        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-slate-800">
-              <Database className="w-4 h-4 text-brand-600" />
-              <span className="font-extrabold text-xs">Sinkronisasi Cloud Supabase</span>
-            </div>
-            {isSupabaseActive() ? (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                Terhubung
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
-                Lokal Aktif
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <input
-              type="text"
-              value={supabaseUrl}
-              onChange={(e) => setSupabaseUrl(e.target.value)}
-              placeholder="https://xyz.supabase.co"
-              className="w-full h-8 px-2.5 text-[11px] font-mono text-slate-800 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500"
-            />
-            <input
-              type="password"
-              value={supabaseKey}
-              onChange={(e) => setSupabaseKey(e.target.value)}
-              placeholder="Supabase Anon Public Key"
-              className="w-full h-8 px-2.5 text-[11px] font-mono text-slate-800 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500"
-            />
-          </div>
-          <p className="text-[9.5px] text-slate-400">
-            *Kredensial tersimpan di penyimpanan browser untuk sinkronisasi otomatis ke tabel orders.
-          </p>
-        </div>
-
-        {/* Section 3: Data Demo Reset */}
+        {/* Section 2: Reset Data Demo */}
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"
@@ -170,21 +115,14 @@ export const ProfileSettingsModal: React.FC = () => {
           )}
         </div>
 
-        {/* Save & Close buttons */}
+        {/* Close button */}
         <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
           <button
             type="button"
-            onClick={handleSaveProfile}
-            className="flex-1 h-10 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-brand-600/20 active:scale-95 transition-all"
+            onClick={() => setIsProfileOpen(false)}
+            className="flex-1 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
           >
-            {saveSuccess ? (
-              <>
-                <Check className="w-4 h-4" />
-                Tersimpan!
-              </>
-            ) : (
-              'Simpan Perubahan'
-            )}
+            Tutup
           </button>
         </div>
 

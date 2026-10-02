@@ -8,7 +8,6 @@ import { TabKitchenOrders } from './components/TabKitchenOrders';
 import { TabOmzetReport } from './components/TabOmzetReport';
 import { ThermalSlipModal } from './components/ThermalSlipModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
-import { WifiOff } from 'lucide-react';
 
 export const App: React.FC = () => {
   const {
@@ -55,19 +54,6 @@ export const App: React.FC = () => {
       {/* Mobile-first viewport container (Max 480px on desktop) */}
       <div className="w-full max-w-[480px] min-h-screen bg-white shadow-xl flex flex-col relative">
         
-        {/* Offline Warning Ribbon (only when offline) */}
-        {!effectiveOnline && (
-          <div className="bg-amber-500 text-amber-950 px-3 py-1.5 text-[11px] font-bold flex items-center justify-between z-50">
-            <div className="flex items-center gap-1.5">
-              <WifiOff className="w-3.5 h-3.5" />
-              <span>Mode Offline-First Aktif. Data tersimpan di perangkat.</span>
-            </div>
-            <span className="text-[10px] bg-amber-400 px-1.5 py-0.5 rounded font-black">
-              Lokal
-            </span>
-          </div>
-        )}
-
         {/* 1. Top Fixed Navigation Header */}
         <Header />
 

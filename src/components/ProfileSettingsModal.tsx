@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { db, seedInitialDataIfEmpty } from '../db';
+import { db } from '../db';
 import { 
   Settings, 
   X, 
@@ -26,9 +26,8 @@ export const ProfileSettingsModal: React.FC = () => {
   if (!isProfileOpen) return null;
 
   const handleResetData = async () => {
-    if (confirm('Apakah Anda yakin ingin memuat ulang data demo awal Taichan Portal? Semua antrean baru akan diatur ulang.')) {
+    if (confirm('Apakah Anda yakin ingin mengosongkan semua data antrean & pesanan?')) {
       await db.orders.clear();
-      await seedInitialDataIfEmpty();
       await checkPendingSync();
       setResetSuccess(true);
       setTimeout(() => setResetSuccess(false), 2000);
@@ -98,19 +97,20 @@ export const ProfileSettingsModal: React.FC = () => {
         </div>
 
         {/* Section 2: Reset Data Demo */}
+        {/* Section 2: Reset / Kosongkan Data */}
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"
             onClick={handleResetData}
-            className="text-[11px] font-bold text-slate-600 hover:text-brand-600 flex items-center gap-1 transition-colors"
+            className="text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Reset Data Demo
+            Kosongkan Semua Data Pesanan
           </button>
 
           {resetSuccess && (
             <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <Check className="w-3 h-3" /> Data Direset
+              <Check className="w-3 h-3" /> Data Dikosongkan
             </span>
           )}
         </div>

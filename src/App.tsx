@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
-import { seedInitialDataIfEmpty } from './db';
+import { db } from './db';
 import { Header } from './components/Header';
 import { NavigationTabs } from './components/NavigationTabs';
 import { TabInputOrder } from './components/TabInputOrder';
@@ -20,10 +20,16 @@ export const App: React.FC = () => {
   } = useAppStore();
 
   useEffect(() => {
-    // 1. Seed demo data if database is fresh
-    seedInitialDataIfEmpty().then(() => {
+    // 1. One-time auto cleanup of old dummy data so the system is 100% clean and fresh
+    const demoCleaned = localStorage.getItem('taichan_clean_slate_fresh');
+    if (!demoCleaned) {
+      db.orders.clear().then(() => {
+        localStorage.setItem('taichan_clean_slate_fresh', 'true');
+        checkPendingSync();
+      });
+    } else {
       checkPendingSync();
-    });
+    }
 
     // 2. Setup browser network event listeners
     const handleOnline = () => {

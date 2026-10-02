@@ -62,14 +62,13 @@ Kredensial proyek Supabase Anda:
   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzYndtdXJzamhvdGJyemlkamNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NTc2MzgsImV4cCI6MjEwNjUzMzYzOH0.r-JXSul59phhWivlBeKcPR0ei9ZTEvO_c-Nxp9Gj4qw
   ```
 
-#### Cara Pemasangan di Aplikasi:
-* **Cara A (Langsung dari UI Kasir):**
-  1. Buka aplikasi di [http://localhost:3000/](http://localhost:3000/).
-  2. Klik ikon **Profil Kasir (lingkaran merah di kanan atas)**.
-  3. Kolom **URL** dan **Anon Key** sudah **otomatis terisi** dengan kredensial di atas (atau dapat Anda paste ulang jika perlu).
-  4. Klik **Simpan Perubahan**. Sistem akan langsung memunculkan status badge **Terhubung**!
-* **Cara B (Melalui file `.env`):**
-  File `.env` di proyek Anda juga telah otomatis terkonfigurasi dengan variabel tersebut.
+#### Konfigurasi Kredensial di Aplikasi & Vercel:
+* **Lokal / Development:**
+  Kredensial di atas sudah otomatis terpasang pada file [`.env`](file:///d:/taichan-portal/.env).
+* **Di Vercel (Production):**
+  Di dashboard Vercel pada proyek Anda, buka **Settings > Environment Variables**, lalu tambahkan:
+  - `VITE_SUPABASE_URL` = `https://psbwmursjhotbrzidjcb.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY` = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
 
 ---
 

@@ -28,6 +28,7 @@ export const App: React.FC = () => {
       });
     } else {
       checkPendingSync();
+      performSync();
     }
 
     // 2. Setup browser network event listeners

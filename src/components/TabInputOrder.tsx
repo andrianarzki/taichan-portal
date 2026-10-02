@@ -146,7 +146,7 @@ export const TabInputOrder: React.FC = () => {
         paymentMethod,
         status: 'ACTIVE',
         createdAt: new Date().toISOString(),
-        synced: effectiveOnline
+        synced: false
       };
 
       // Save to Dexie IndexedDB

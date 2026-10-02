@@ -48,7 +48,7 @@ export const TabKitchenOrders: React.FC = () => {
       await db.orders.update(order.id, {
         status: 'DONE',
         completedAt,
-        synced: effectiveOnline
+        synced: false
       });
 
       if (effectiveOnline) {

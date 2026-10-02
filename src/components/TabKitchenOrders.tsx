@@ -134,10 +134,16 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, onComplete, o
           <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70 font-black text-xs tracking-wide">
             {order.id}
           </span>
-          {/* Table Info */}
-          <span className="font-extrabold text-[15px] text-slate-900 uppercase">
-            {order.tableInfo}
-          </span>
+          {/* Table / Takeaway Info */}
+          {order.tableInfo.toLowerCase().includes('takeaway') || order.tableInfo.toLowerCase().includes('bungkus') ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500 text-white font-black text-xs tracking-wide shadow-2xs">
+              🛍️ {order.tableInfo.toUpperCase()}
+            </span>
+          ) : (
+            <span className="font-extrabold text-[15px] text-slate-900 uppercase">
+              {order.tableInfo}
+            </span>
+          )}
         </div>
 
         {/* Payment badge */}

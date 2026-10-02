@@ -19,7 +19,8 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-const QUICK_CHIPS = ['Meja 01', 'Meja 02', 'Meja 03', 'Meja 04'];
+const DINE_IN_CHIPS = ['Meja 01', 'Meja 02', 'Meja 03', 'Meja 04'];
+const TAKEAWAY_CHIPS = ['Takeaway', 'Takeaway 01', 'Takeaway 02', 'Bungkus'];
 
 export const TabInputOrder: React.FC = () => {
   const {
@@ -38,6 +39,7 @@ export const TabInputOrder: React.FC = () => {
     setIsQrisModalOpen
   } = useAppStore();
 
+  const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -142,13 +144,52 @@ export const TabInputOrder: React.FC = () => {
           </div>
         )}
 
-        {/* 1. Kotak Nomor Meja / Identitas Antrean */}
+        {/* 1. Kotak Nomor Meja / Identitas Antrean & Pilihan Pesanan */}
         <section className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          
+          {/* Tipe Pesanan: Makan di Tempat / Takeaway */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-3">
+            <button
+              type="button"
+              onClick={() => {
+                setOrderType('dine-in');
+                if (tableInfo.toLowerCase().includes('takeaway') || tableInfo.toLowerCase().includes('bungkus') || !tableInfo) {
+                  setTableInfo('Meja 01');
+                }
+                if (errorMessage) setErrorMessage(null);
+              }}
+              className={`py-2 px-3 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                orderType === 'dine-in'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>🍽️</span> Makan di Tempat
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOrderType('takeaway');
+                if (!tableInfo.toLowerCase().includes('takeaway') && !tableInfo.toLowerCase().includes('bungkus')) {
+                  setTableInfo('Takeaway');
+                }
+                if (errorMessage) setErrorMessage(null);
+              }}
+              className={`py-2 px-3 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                orderType === 'takeaway'
+                  ? 'bg-brand-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>🛍️</span> Takeaway (Bungkus)
+            </button>
+          </div>
+
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5 text-brand-700">
-              <span className="text-base">🪑</span>
+              <span className="text-base">{orderType === 'dine-in' ? '🪑' : '🛍️'}</span>
               <label htmlFor="table-input" className="text-[11px] font-black tracking-wider text-slate-700 uppercase">
-                NO. MEJA / IDENTITAS ANTREAN
+                {orderType === 'dine-in' ? 'NO. MEJA' : 'IDENTITAS PEMESAN TAKEAWAY'}
               </label>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
@@ -162,10 +203,14 @@ export const TabInputOrder: React.FC = () => {
               type="text"
               value={tableInfo}
               onChange={(e) => {
-                setTableInfo(e.target.value);
+                const val = e.target.value;
+                setTableInfo(val);
+                if (val.toLowerCase().includes('takeaway') || val.toLowerCase().includes('bungkus')) {
+                  setOrderType('takeaway');
+                }
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder="Contoh: Meja 03, Bungkus, Mas Dani..."
+              placeholder={orderType === 'dine-in' ? "Contoh: Meja 01, Meja 02..." : "Contoh: Takeaway, Mas Dani, Bungkus 01..."}
               className="w-full h-11 pl-3.5 pr-10 text-sm font-bold text-slate-900 placeholder-slate-400 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all"
             />
             {tableInfo && (
@@ -182,7 +227,7 @@ export const TabInputOrder: React.FC = () => {
 
           {/* Quick chips */}
           <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-0.5">
-            {QUICK_CHIPS.map((chip) => {
+            {(orderType === 'dine-in' ? DINE_IN_CHIPS : TAKEAWAY_CHIPS).map((chip) => {
               const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
               return (
                 <button

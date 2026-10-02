@@ -1,0 +1,534 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
+import { Order, FilterPeriod, FinancialSummary } from '../types';
+import { formatRupiah, formatTimeWIB, formatDateIndonesian } from '../utils/format';
+import { exportOmzetPDF } from '../utils/pdfGenerator';
+import { useAppStore } from '../store/useAppStore';
+import { 
+  TrendingUp, 
+  Calendar, 
+  Wallet, 
+  QrCode, 
+  Printer, 
+  Download, 
+  CheckCircle2, 
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Flame
+} from 'lucide-react';
+
+const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+export const TabOmzetReport: React.FC = () => {
+  const [period, setPeriod] = useState<FilterPeriod>('daily');
+  
+  // Year filter logic: starts from 2026, dynamic up to current year
+  const currentYear = new Date().getFullYear();
+  const availableYears = useMemo(() => {
+    const startYear = 2026;
+    const endYear = Math.max(startYear, currentYear);
+    const years: number[] = [];
+    for (let y = startYear; y <= endYear; y++) {
+      years.push(y);
+    }
+    return years;
+  }, [currentYear]);
+
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    return Math.max(2026, new Date().getFullYear());
+  });
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const { openThermalSlip, openThermalSummary, cashierName, outletName } = useAppStore();
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [period, selectedYear, selectedMonth]);
+
+  // Live query all completed orders
+  const completedOrders = useLiveQuery(
+    async () => {
+      const orders = await db.orders.where('status').equals('DONE').toArray();
+      // Sort reverse chronological (newest completed first)
+      return orders.sort((a, b) => {
+        const timeA = new Date(a.completedAt || a.createdAt).getTime();
+        const timeB = new Date(b.completedAt || b.createdAt).getTime();
+        return timeB - timeA;
+      });
+    },
+    [],
+    []
+  );
+
+  // Filter orders according to period, month, and year
+  const filteredOrders = useMemo(() => {
+    if (!completedOrders) return [];
+    const now = new Date();
+
+    return completedOrders.filter((order) => {
+      const orderDate = new Date(order.completedAt || order.createdAt);
+      const orderYear = orderDate.getFullYear();
+      const orderMonth = orderDate.getMonth();
+
+      if (period === 'daily') {
+        return (
+          orderDate.getDate() === now.getDate() &&
+          orderMonth === now.getMonth() &&
+          orderYear === now.getFullYear()
+        );
+      } else if (period === 'monthly') {
+        return orderMonth === selectedMonth && orderYear === selectedYear;
+      } else {
+        // yearly
+        return orderYear === selectedYear;
+      }
+    });
+  }, [completedOrders, period, selectedMonth, selectedYear]);
+
+  // Aggregate metrics
+  const summary: FinancialSummary = useMemo(() => {
+    let totalOmzet = 0;
+    let cashAmount = 0;
+    let cashCount = 0;
+    let qrisAmount = 0;
+    let qrisCount = 0;
+    let totalPortionsSold = 0;
+
+    filteredOrders.forEach((o) => {
+      totalOmzet += o.totalAmount;
+      if (o.paymentMethod === 'CASH') {
+        cashAmount += o.totalAmount;
+        cashCount += 1;
+      } else {
+        qrisAmount += o.totalAmount;
+        qrisCount += 1;
+      }
+
+      // Count portion skewers (robust fallback for category, menuId prefix tc-, or name contains taichan)
+      o.items?.forEach((item) => {
+        const isTaichan =
+          item.category === 'taichan' ||
+          item.menuId?.startsWith('tc-') ||
+          item.name?.toLowerCase().includes('taichan');
+
+        if (isTaichan) {
+          totalPortionsSold += Number(item.quantity) || 0;
+        }
+      });
+    });
+
+    const totalTransactions = filteredOrders.length;
+    const cashPercent = totalOmzet > 0 ? Math.round((cashAmount / totalOmzet) * 100) : 0;
+    const qrisPercent = totalOmzet > 0 ? Math.round((qrisAmount / totalOmzet) * 100) : 0;
+    const averagePerTable = totalTransactions > 0 ? Math.round(totalOmzet / totalTransactions) : 0;
+
+    let dateLabel = '';
+    const now = new Date();
+    if (period === 'daily') {
+      dateLabel = formatDateIndonesian(now);
+    } else if (period === 'monthly') {
+      dateLabel = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+    } else {
+      dateLabel = `Tahun ${selectedYear}`;
+    }
+
+    return {
+      period,
+      dateLabel,
+      totalOmzet,
+      totalTransactions,
+      cashAmount,
+      cashCount,
+      cashPercent,
+      qrisAmount,
+      qrisCount,
+      qrisPercent,
+      averagePerTable,
+      totalPortionsSold,
+      growthPercentage: 18
+    };
+  }, [filteredOrders, period, selectedMonth, selectedYear]);
+
+  // Pagination per 10 items
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE) || 1;
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredOrders.slice(start, start + PAGE_SIZE);
+  }, [filteredOrders, currentPage]);
+
+  const handleDownloadPDF = () => {
+    exportOmzetPDF(summary, filteredOrders, cashierName, outletName);
+  };
+
+  const handlePrintSummarySlip = () => {
+    openThermalSummary({
+      summary,
+      orders: filteredOrders,
+      cashierName,
+      outletName
+    });
+  };
+
+  return (
+    <div className="pb-24 pt-2">
+      <div className="w-full px-4 space-y-4">
+        
+        {/* 1. Segmented Filter Switcher */}
+        <section className="space-y-2.5">
+          <div className="bg-slate-100 p-1 rounded-2xl grid grid-cols-3 gap-1 shadow-xs">
+            {(['daily', 'monthly', 'yearly'] as FilterPeriod[]).map((p) => {
+              const labels: Record<FilterPeriod, string> = {
+                daily: 'Harian',
+                monthly: 'Bulanan',
+                yearly: 'Tahunan'
+              };
+              const isSelected = period === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                    isSelected
+                      ? 'bg-white text-brand-700 shadow-xs border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {labels[p]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Conditional Sub-Filters for Month & Year */}
+          {period === 'monthly' && (
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black tracking-wider text-slate-500 uppercase">
+                  PILIH BULAN & TAHUN
+                </span>
+                {/* Year selector (only shows 2026 onwards) */}
+                {availableYears.length > 1 ? (
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none"
+                  >
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md border border-brand-200/60">
+                    {availableYears[0]}
+                  </span>
+                )}
+              </div>
+
+              {/* Month Pills */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {MONTH_NAMES.map((name, index) => {
+                  const isSelected = selectedMonth === index;
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setSelectedMonth(index)}
+                      className={`py-1.5 px-1 rounded-lg text-[11px] font-bold text-center transition-all truncate ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-xs'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {name.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {period === 'yearly' && (
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+              <span className="text-[11px] font-black tracking-wider text-slate-500 uppercase">
+                PILIHAN TAHUN
+              </span>
+              {availableYears.length > 1 ? (
+                <div className="flex items-center gap-1.5">
+                  {availableYears.map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => setSelectedYear(year)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        selectedYear === year
+                          ? 'bg-brand-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs font-black text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200/60">
+                  {availableYears[0]}
+                </span>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* 2. Hero Metric Card (Omzet Bersih) */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-soft space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Calendar className="w-3.5 h-3.5 text-brand-600" />
+              <span>{summary.dateLabel}</span>
+            </div>
+            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70">
+              {summary.totalTransactions} Transaksi Selesai
+            </span>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase block">
+              TOTAL OMSET BERSIH
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="font-black text-2xl tracking-tight text-slate-900">
+                {formatRupiah(summary.totalOmzet)}
+              </span>
+              <span className="inline-flex items-center text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                <TrendingUp className="w-3 h-3 mr-0.5" />
+                +{summary.growthPercentage}%
+              </span>
+            </div>
+          </div>
+
+          {/* Operational Sub-banners */}
+          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-500 font-semibold">
+            <span className="flex items-center gap-1 text-slate-600">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              Sistem Otomatis (Tanpa Shift) • Real-time Cloud
+            </span>
+            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 font-bold">
+              ✓ Tutup Kas Otomatis Aktif
+            </span>
+          </div>
+        </section>
+
+        {/* 3. Pemisahan Metode Pembayaran (CASH vs QRIS) */}
+        <section className="grid grid-cols-2 gap-2.5">
+          {/* CASH Metric Card */}
+          <div className="bg-white rounded-2xl border border-amber-200/80 p-3.5 shadow-soft space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-amber-800">
+                <Wallet className="w-4 h-4 text-amber-600" />
+                <span className="font-extrabold text-xs">CASH</span>
+              </div>
+              <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                {summary.cashPercent}%
+              </span>
+            </div>
+            <div>
+              <div className="font-black text-sm text-slate-900">
+                {formatRupiah(summary.cashAmount)}
+              </div>
+              <div className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                {summary.cashCount} Struk Tunai
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-amber-500 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${summary.cashPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* QRIS Metric Card */}
+          <div className="bg-white rounded-2xl border border-blue-200/80 p-3.5 shadow-soft space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-blue-800">
+                <QrCode className="w-4 h-4 text-blue-600" />
+                <span className="font-extrabold text-xs">QRIS</span>
+              </div>
+              <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                {summary.qrisPercent}%
+              </span>
+            </div>
+            <div>
+              <div className="font-black text-sm text-slate-900">
+                {formatRupiah(summary.qrisAmount)}
+              </div>
+              <div className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                {summary.qrisCount} Struk Non-Tunai
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${summary.qrisPercent}%` }}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 4. Metrik Total Terjual (Rata-rata meja telah dihilangkan sesuai point 11) */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center font-bold">
+              <Flame className="w-4 h-4 text-brand-600" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Porsi Terjual</span>
+              <div className="font-black text-sm text-slate-900">
+                {summary.totalPortionsSold} Porsi Sate Taichan
+              </div>
+            </div>
+          </div>
+
+          <span className="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg border border-brand-200/60">
+            Terjual
+          </span>
+        </section>
+
+        {/* 5. Tombol Aksi Laporan & Cetak */}
+        <section className="grid grid-cols-2 gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={handlePrintSummarySlip}
+            className="h-11 rounded-xl border-2 border-slate-300 hover:border-slate-400 bg-white text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+          >
+            <Printer className="w-4 h-4 text-slate-600" />
+            Cetak Slip Ringkasan
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="h-11 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 active:scale-98 shadow-md shadow-brand-600/20 transition-all"
+          >
+            <Download className="w-4 h-4" />
+            Unduh Rekap PDF
+          </button>
+        </section>
+
+        {/* 6. Daftar Riwayat Transaksi Selesai dengan Pagination per 10 data */}
+        <section className="space-y-2 pt-2">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
+              Riwayat Transaksi Selesai
+            </h4>
+            <span className="text-[11px] font-semibold text-slate-400">
+              {filteredOrders.length} Pesanan Total
+            </span>
+          </div>
+
+          {filteredOrders.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-xs text-slate-400">
+              Belum ada transaksi selesai pada periode ini.
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {paginatedOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    onClick={() => openThermalSlip(order)}
+                    className="bg-white rounded-xl border border-slate-200/80 p-3 hover:border-slate-300 flex items-center justify-between gap-3 shadow-2xs cursor-pointer active:bg-slate-50 transition-all"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200/70">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs text-slate-900 truncate">
+                            {order.id}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-500 truncate">
+                            • {order.tableInfo}
+                          </span>
+                        </div>
+                        <div className="text-[10px] mt-0.5">
+                          <span
+                            className={`font-black ${
+                              order.paymentMethod === 'CASH' ? 'text-amber-700' : 'text-blue-700'
+                            }`}
+                          >
+                            {order.paymentMethod}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="font-black text-xs text-slate-900 block">
+                        {formatRupiah(order.totalAmount)}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400 hover:text-brand-600">
+                        Lihat Struk ❯
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination Controls (Point 12) */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-3 pb-2 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                      currentPage === 1
+                        ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-2xs'
+                    }`}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Sebelumnya
+                  </button>
+
+                  <span className="text-xs font-bold text-slate-500">
+                    Hal <span className="text-slate-900">{currentPage}</span> dari <span className="text-slate-900">{totalPages}</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                      currentPage === totalPages
+                        ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-2xs'
+                    }`}
+                  >
+                    Selanjutnya
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="100%" stop-color="#B91C1C" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#991B1B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Circle Badge -->
+  <circle cx="100" cy="100" r="92" fill="url(#redGrad)" filter="url(#shadow)" />
+  <circle cx="100" cy="100" r="82" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="3" stroke-dasharray="8 6" />
+  
+  <!-- Skewer / Chili / Taichan icon elements -->
+  <!-- Skewer stick -->
+  <line x1="36" y1="164" x2="164" y2="36" stroke="#FEF3C7" stroke-width="7" stroke-linecap="round"/>
+  <!-- Taichan Sate Cubes -->
+  <!-- Meat cube 1 -->
+  <rect x="52" y="112" width="30" height="26" rx="7" transform="rotate(-45 52 112)" fill="#FFFFFF" stroke="#FEF2F2" stroke-width="2"/>
+  <!-- Meat cube 2 -->
+  <rect x="76" y="88" width="32" height="28" rx="8" transform="rotate(-45 76 88)" fill="#FFFBEB" stroke="#FDE68A" stroke-width="2"/>
+  <!-- Meat cube 3 -->
+  <rect x="100" y="64" width="30" height="26" rx="7" transform="rotate(-45 100 64)" fill="#FFFFFF" stroke="#FEF2F2" stroke-width="2"/>
+  
+  <!-- Red Chili Pepper Accent -->
+  <path d="M125 100 C155 125, 145 160, 115 155 C100 152, 110 135, 125 100 Z" fill="#DC2626" stroke="#FEE2E2" stroke-width="2"/>
+  <path d="M116 156 C112 165, 105 170, 98 168" stroke="#16A34A" stroke-width="3.5" stroke-linecap="round"/>
+  
+  <!-- Small flame spark -->
+  <path d="M152 48 C158 54, 158 60, 153 64 C148 68, 142 63, 146 55 C149 49, 150 48, 152 48 Z" fill="#FBBF24" />
+</svg>

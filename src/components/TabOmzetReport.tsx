@@ -6,17 +6,16 @@ import { formatRupiah, formatTimeWIB, formatDateIndonesian } from '../utils/form
 import { exportOmzetPDF } from '../utils/pdfGenerator';
 import { useAppStore } from '../store/useAppStore';
 import { 
-  TrendingUp, 
   Calendar, 
   Wallet, 
   QrCode, 
   Printer, 
   Download, 
   CheckCircle2, 
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Flame
+  Sparkles, 
+  ChevronLeft, 
+  ChevronRight, 
+  Flame 
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -152,8 +151,7 @@ export const TabOmzetReport: React.FC = () => {
       qrisCount,
       qrisPercent,
       averagePerTable,
-      totalPortionsSold,
-      growthPercentage: 18
+      totalPortionsSold
     };
   }, [filteredOrders, period, selectedMonth, selectedYear]);
 
@@ -179,7 +177,7 @@ export const TabOmzetReport: React.FC = () => {
   };
 
   return (
-    <div className="pb-24 pt-2">
+    <div className="pb-[calc(env(safe-area-inset-bottom,0px)+80px)] pt-2">
       <div className="w-full px-4 space-y-4">
         
         {/* 1. Segmented Filter Switcher */}
@@ -308,10 +306,6 @@ export const TabOmzetReport: React.FC = () => {
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="font-black text-2xl tracking-tight text-slate-900">
                 {formatRupiah(summary.totalOmzet)}
-              </span>
-              <span className="inline-flex items-center text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                <TrendingUp className="w-3 h-3 mr-0.5" />
-                +{summary.growthPercentage}%
               </span>
             </div>
           </div>

@@ -60,7 +60,7 @@ export const TabKitchenOrders: React.FC = () => {
   };
 
   return (
-    <div className="pb-24 pt-2">
+    <div className="pb-[calc(env(safe-area-inset-bottom,0px)+80px)] pt-2">
       <div className="max-w-md mx-auto px-4 space-y-4">
         
         {/* Header Antrean Dapur */}

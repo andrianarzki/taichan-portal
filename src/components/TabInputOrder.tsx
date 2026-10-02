@@ -169,7 +169,7 @@ export const TabInputOrder: React.FC = () => {
   };
 
   return (
-    <div className="pb-36 pt-2">
+    <div className="pb-[calc(env(safe-area-inset-bottom,0px)+180px)] pt-2">
       <div className="w-full px-4 space-y-4">
         
         {/* Error Notification Banner */}
@@ -468,8 +468,8 @@ export const TabInputOrder: React.FC = () => {
 
       </div>
 
-      {/* 4. Bottom Sticky Action Bar - CONSTRAINED to 480px! */}
-      <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[480px] z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-sticky px-4 py-2.5">
+      {/* 4. Bottom Sticky Action Bar - CONSTRAINED to 480px & iOS Safe Area! */}
+      <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[480px] z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-sticky px-4 pt-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         <div className="space-y-2">
           
           <div className="flex items-center justify-between">

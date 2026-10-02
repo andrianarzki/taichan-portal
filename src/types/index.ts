@@ -51,5 +51,5 @@ export interface FinancialSummary {
   qrisPercent: number;
   averagePerTable: number;
   totalPortionsSold: number;
-  growthPercentage: number;
+  growthPercentage?: number;
 }

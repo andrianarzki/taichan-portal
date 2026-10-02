@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
   } = useAppStore();
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 pt-[env(safe-area-inset-top,0px)]">
       <div className="w-full px-4 h-14 flex items-center justify-between">
         
         {/* Left: Brand & Connection Status */}

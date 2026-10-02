@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'Taichan Portal — Kasir & Antrean',
         short_name: 'TaichanPortal',
         description: 'Sistem Kasir & Manajemen Antrean Dapur Offline-First — Taichan Portal',
-        theme_color: '#C5221F',
-        background_color: '#F8FAFC',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

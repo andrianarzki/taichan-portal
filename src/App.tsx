@@ -7,7 +7,6 @@ import { TabInputOrder } from './components/TabInputOrder';
 import { TabKitchenOrders } from './components/TabKitchenOrders';
 import { TabOmzetReport } from './components/TabOmzetReport';
 import { ThermalSlipModal } from './components/ThermalSlipModal';
-import { QRISModal } from './components/QRISModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { WifiOff } from 'lucide-react';
 
@@ -78,7 +77,6 @@ export const App: React.FC = () => {
 
         {/* Modals & Dialogs */}
         <ThermalSlipModal />
-        <QRISModal />
         <ProfileSettingsModal />
 
       </div>

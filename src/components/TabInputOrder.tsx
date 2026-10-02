@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useAppStore } from '../store/useAppStore';
 import { INITIAL_MENU_ITEMS } from '../data/menu';
 import { db, getNextOrderId } from '../db';
@@ -35,13 +36,40 @@ export const TabInputOrder: React.FC = () => {
     resetInputForm,
     setActiveTab,
     effectiveOnline,
-    performSync,
-    setIsQrisModalOpen
+    performSync
   } = useAppStore();
 
   const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Live query active orders from Dexie
+  const activeOrders = useLiveQuery(
+    () => db.orders.where('status').equals('ACTIVE').toArray(),
+    []
+  ) || [];
+
+  // Set of occupied table names (lowercase)
+  const occupiedTables = new Set(
+    activeOrders.map((o) => o.tableInfo.trim().toLowerCase())
+  );
+
+  // Available dine-in chips (excluding tables with active orders in kitchen)
+  const availableDineInChips = DINE_IN_CHIPS.filter(
+    (chip) => !occupiedTables.has(chip.toLowerCase())
+  );
+
+  // Auto-adjust selected table if the current one is occupied
+  useEffect(() => {
+    if (orderType === 'dine-in') {
+      if (tableInfo && occupiedTables.has(tableInfo.trim().toLowerCase())) {
+        const nextAvailable = availableDineInChips[0] || '';
+        setTableInfo(nextAvailable);
+      } else if (!tableInfo && availableDineInChips.length > 0) {
+        setTableInfo(availableDineInChips[0]);
+      }
+    }
+  }, [activeOrders, orderType]);
 
   // Group menus
   const taichanMenus = INITIAL_MENU_ITEMS.filter((m) => m.category === 'taichan');
@@ -74,7 +102,13 @@ export const TabInputOrder: React.FC = () => {
 
   const handleSubmitOrder = async () => {
     if (!tableInfo.trim()) {
-      setErrorMessage('Nomor Meja atau Identitas Antrean wajib diisi!');
+      setErrorMessage(orderType === 'dine-in' ? 'Pilih nomor meja terlebih dahulu!' : 'Identitas pemesan takeaway wajib diisi!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (orderType === 'dine-in' && occupiedTables.has(tableInfo.trim().toLowerCase())) {
+      setErrorMessage(`${tableInfo.trim()} sedang aktif/digunakan di Dapur! Selesaikan pesanan di Tab Dapur terlebih dahulu.`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -227,23 +261,49 @@ export const TabInputOrder: React.FC = () => {
 
           {/* Quick chips */}
           <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-0.5">
-            {(orderType === 'dine-in' ? DINE_IN_CHIPS : TAKEAWAY_CHIPS).map((chip) => {
-              const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
-              return (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => handleQuickChipSelect(chip)}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
-                    isSelected
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {chip}
-                </button>
-              );
-            })}
+            {orderType === 'dine-in' ? (
+              availableDineInChips.length > 0 ? (
+                availableDineInChips.map((chip) => {
+                  const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
+                  return (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleQuickChipSelect(chip)}
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="w-full text-center py-2 px-3 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
+                  ⚠️ Semua meja (01-04) sedang digunakan di Dapur. Selesaikan di tab Dapur atau pilih Takeaway.
+                </div>
+              )
+            ) : (
+              TAKEAWAY_CHIPS.map((chip) => {
+                const isSelected = tableInfo.toLowerCase() === chip.toLowerCase();
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => handleQuickChipSelect(chip)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-brand-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                );
+              })
+            )}
             <button
               type="button"
               onClick={handleClearTableInput}
@@ -377,9 +437,6 @@ export const TabInputOrder: React.FC = () => {
               type="button"
               onClick={() => {
                 setPaymentMethod('QRIS');
-                if (totalAmount > 0) {
-                  setIsQrisModalOpen(true);
-                }
               }}
               className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
                 paymentMethod === 'QRIS'

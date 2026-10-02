@@ -7,26 +7,20 @@ import {
 } from '../services/supabase';
 import { db, seedInitialDataIfEmpty } from '../db';
 import { 
-  User, 
+  Settings, 
   X, 
   Wifi, 
   WifiOff, 
   Database, 
   RotateCcw, 
   Check, 
-  Cloud,
-  Store,
-  CheckCircle2,
-  AlertCircle
+  RefreshCw
 } from 'lucide-react';
 
 export const ProfileSettingsModal: React.FC = () => {
   const {
     isProfileOpen,
     setIsProfileOpen,
-    cashierName,
-    setCashierName,
-    outletName,
     isSimulatedOffline,
     setSimulatedOffline,
     effectiveOnline,
@@ -34,7 +28,6 @@ export const ProfileSettingsModal: React.FC = () => {
     checkPendingSync
   } = useAppStore();
 
-  const [inputName, setInputName] = useState(cashierName);
   const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseCredentials().url);
   const [supabaseKey, setSupabaseKey] = useState(() => getSupabaseCredentials().key);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -43,9 +36,6 @@ export const ProfileSettingsModal: React.FC = () => {
   if (!isProfileOpen) return null;
 
   const handleSaveProfile = () => {
-    if (inputName.trim()) {
-      setCashierName(inputName.trim());
-    }
     saveSupabaseCredentials(supabaseUrl, supabaseKey);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
@@ -69,10 +59,10 @@ export const ProfileSettingsModal: React.FC = () => {
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold">
-              <User className="w-4 h-4" />
+              <Settings className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900">Profil & Pengaturan</h3>
+              <h3 className="font-extrabold text-sm text-slate-900">Pengaturan Sistem</h3>
               <p className="text-[11px] text-slate-400 font-medium">Taichan Portal POS</p>
             </div>
           </div>
@@ -84,21 +74,7 @@ export const ProfileSettingsModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Section 1: Profil Kasir */}
-        <div className="space-y-2">
-          <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">
-            NAMA KASIR AKTIF
-          </label>
-          <input
-            type="text"
-            value={inputName}
-            onChange={(e) => setInputName(e.target.value)}
-            placeholder="Nama Kasir"
-            className="w-full h-10 px-3 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500"
-          />
-        </div>
-
-        {/* Section 2: Simulasi Mode Jaringan Offline-First */}
+        {/* Section 1: Simulasi Mode Jaringan Offline-First */}
         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -137,7 +113,7 @@ export const ProfileSettingsModal: React.FC = () => {
           </p>
         </div>
 
-        {/* Section 3: Supabase Cloud Database */}
+        {/* Section 2: Supabase Cloud Database */}
         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-slate-800">
@@ -172,11 +148,11 @@ export const ProfileSettingsModal: React.FC = () => {
             />
           </div>
           <p className="text-[9.5px] text-slate-400">
-            *Opsional. Jika kosong, sistem otomatis menjalankan sinkronisasi lokal terisolasi secara aman.
+            *Kredensial tersimpan di penyimpanan browser untuk sinkronisasi otomatis ke tabel orders.
           </p>
         </div>
 
-        {/* Section 4: Data Demo Reset */}
+        {/* Section 3: Data Demo Reset */}
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { User, WifiOff } from 'lucide-react';
+import { Settings, WifiOff } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -73,14 +73,14 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Kasir Profile Avatar */}
+        {/* Right: Pengaturan Sistem */}
         <div className="flex items-center">
           <button
             onClick={() => setIsProfileOpen(true)}
             className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all shadow-xs"
-            title="Profil Kasir & Pengaturan"
+            title="Pengaturan Sistem & Database"
           >
-            <User className="w-4 h-4 stroke-[2.5]" />
+            <Settings className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 

@@ -43,14 +43,47 @@ export const TabOmzetReport: React.FC = () => {
   });
 
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedDailyDate, setSelectedDailyDate] = useState<Date>(() => new Date());
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const { openThermalSlip, openThermalSummary, cashierName, outletName } = useAppStore();
 
+  // Helper date functions
+  const formatToISODate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const isToday = (d: Date): boolean => {
+    const now = new Date();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  };
+
+  const handlePrevDay = () => {
+    const prev = new Date(selectedDailyDate);
+    prev.setDate(prev.getDate() - 1);
+    setSelectedDailyDate(prev);
+  };
+
+  const handleNextDay = () => {
+    const next = new Date(selectedDailyDate);
+    next.setDate(next.getDate() + 1);
+    const now = new Date();
+    if (next <= now || isToday(next)) {
+      setSelectedDailyDate(next);
+    }
+  };
+
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [period, selectedYear, selectedMonth]);
+  }, [period, selectedYear, selectedMonth, selectedDailyDate]);
 
   // Live query all completed orders
   const completedOrders = useLiveQuery(
@@ -67,10 +100,52 @@ export const TabOmzetReport: React.FC = () => {
     []
   );
 
+  // Active days in selected month with completed transactions
+  const activeDaysInMonth = useMemo(() => {
+    const set = new Set<number>();
+    if (!completedOrders) return set;
+    const m = selectedDailyDate.getMonth();
+    const y = selectedDailyDate.getFullYear();
+    completedOrders.forEach((o) => {
+      const d = new Date(o.completedAt || o.createdAt);
+      if (d.getMonth() === m && d.getFullYear() === y) {
+        set.add(d.getDate());
+      }
+    });
+    return set;
+  }, [completedOrders, selectedDailyDate]);
+
+  // Generate all calendar days in the selected month for horizontal strip
+  const daysInSelectedMonth = useMemo(() => {
+    const year = selectedDailyDate.getFullYear();
+    const month = selectedDailyDate.getMonth();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const days: { date: Date; dayNum: number; dayName: string; hasTransactions: boolean; isTodayDate: boolean }[] = [];
+    const today = new Date();
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dateObj = new Date(year, month, d);
+      const dayNameShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dateObj.getDay()];
+      const isTodayDate =
+        d === today.getDate() &&
+        month === today.getMonth() &&
+        year === today.getFullYear();
+      const hasTransactions = activeDaysInMonth.has(d);
+
+      days.push({
+        date: dateObj,
+        dayNum: d,
+        dayName: dayNameShort,
+        hasTransactions,
+        isTodayDate
+      });
+    }
+    return days;
+  }, [selectedDailyDate, activeDaysInMonth]);
+
   // Filter orders according to period, month, and year
   const filteredOrders = useMemo(() => {
     if (!completedOrders) return [];
-    const now = new Date();
 
     return completedOrders.filter((order) => {
       const orderDate = new Date(order.completedAt || order.createdAt);
@@ -79,9 +154,9 @@ export const TabOmzetReport: React.FC = () => {
 
       if (period === 'daily') {
         return (
-          orderDate.getDate() === now.getDate() &&
-          orderMonth === now.getMonth() &&
-          orderYear === now.getFullYear()
+          orderDate.getDate() === selectedDailyDate.getDate() &&
+          orderMonth === selectedDailyDate.getMonth() &&
+          orderYear === selectedDailyDate.getFullYear()
         );
       } else if (period === 'monthly') {
         return orderMonth === selectedMonth && orderYear === selectedYear;
@@ -90,7 +165,7 @@ export const TabOmzetReport: React.FC = () => {
         return orderYear === selectedYear;
       }
     });
-  }, [completedOrders, period, selectedMonth, selectedYear]);
+  }, [completedOrders, period, selectedMonth, selectedYear, selectedDailyDate]);
 
   // Aggregate metrics
   const summary: FinancialSummary = useMemo(() => {
@@ -130,9 +205,8 @@ export const TabOmzetReport: React.FC = () => {
     const averagePerTable = totalTransactions > 0 ? Math.round(totalOmzet / totalTransactions) : 0;
 
     let dateLabel = '';
-    const now = new Date();
     if (period === 'daily') {
-      dateLabel = formatDateIndonesian(now);
+      dateLabel = formatDateIndonesian(selectedDailyDate);
     } else if (period === 'monthly') {
       dateLabel = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
     } else {
@@ -153,7 +227,7 @@ export const TabOmzetReport: React.FC = () => {
       averagePerTable,
       totalPortionsSold
     };
-  }, [filteredOrders, period, selectedMonth, selectedYear]);
+  }, [filteredOrders, period, selectedMonth, selectedYear, selectedDailyDate]);
 
   // Pagination per 10 items
   const PAGE_SIZE = 10;
@@ -206,7 +280,121 @@ export const TabOmzetReport: React.FC = () => {
             })}
           </div>
 
-          {/* Conditional Sub-Filters for Month & Year */}
+          {/* Conditional Sub-Filters for Day, Month & Year */}
+          {period === 'daily' && (
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5">
+              {/* Header Navigasi Tanggal */}
+              <div className="flex items-center justify-between gap-1.5">
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors active:scale-95 shrink-0"
+                  title="Hari Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Date Display with Native Calendar Trigger */}
+                <div className="relative flex items-center justify-center flex-1 mx-1">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-brand-400 transition-colors w-full justify-center">
+                    <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
+                    <span className="text-xs font-black text-slate-800 text-center truncate">
+                      {formatDateIndonesian(selectedDailyDate)}
+                    </span>
+                  </div>
+                  {/* Invisible native date picker over the label */}
+                  <input
+                    type="date"
+                    value={formatToISODate(selectedDailyDate)}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const [y, m, d] = e.target.value.split('-').map(Number);
+                        setSelectedDailyDate(new Date(y, m - 1, d));
+                      }
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    title="Klik untuk memilih tanggal kalender"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  {!isToday(selectedDailyDate) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDailyDate(new Date())}
+                      className="px-2 py-1 rounded-lg text-[10px] font-black bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition-all"
+                      title="Kembali ke Hari Ini"
+                    >
+                      Hari Ini
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    disabled={isToday(selectedDailyDate)}
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                      isToday(selectedDailyDate)
+                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-slate-100'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-95'
+                    }`}
+                    title="Hari Berikutnya"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Strip Tanggal dalam Bulan Ini (Horizontal Scrollable) */}
+              <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                  <span className="font-extrabold uppercase text-slate-500">
+                    TANGGAL BULAN {MONTH_NAMES[selectedDailyDate.getMonth()].toUpperCase()}
+                  </span>
+                  <span className="flex items-center gap-1 text-[9px] text-emerald-600 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Ada Transaksi
+                  </span>
+                </div>
+
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none scroll-smooth">
+                  {daysInSelectedMonth.map((item) => {
+                    const isSelected =
+                      item.date.getDate() === selectedDailyDate.getDate() &&
+                      item.date.getMonth() === selectedDailyDate.getMonth() &&
+                      item.date.getFullYear() === selectedDailyDate.getFullYear();
+                    return (
+                      <button
+                        key={item.dayNum}
+                        type="button"
+                        onClick={() => setSelectedDailyDate(item.date)}
+                        className={`shrink-0 w-11 h-13 rounded-xl flex flex-col items-center justify-center transition-all relative ${
+                          isSelected
+                            ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30 font-black'
+                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70 font-bold'
+                        }`}
+                      >
+                        <span className={`text-[9px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                          {item.dayName}
+                        </span>
+                        <span className="text-xs leading-none mt-1">
+                          {item.dayNum}
+                        </span>
+                        {item.hasTransactions && (
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
+                              isSelected ? 'bg-amber-300' : 'bg-emerald-500'
+                            }`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {period === 'monthly' && (
             <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
               <div className="flex items-center justify-between">

@@ -15,7 +15,8 @@ import {
   Sparkles, 
   ChevronLeft, 
   ChevronRight, 
-  Flame 
+  Flame,
+  X 
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -45,16 +46,11 @@ export const TabOmzetReport: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
   const [selectedDailyDate, setSelectedDailyDate] = useState<Date>(() => new Date());
   const [currentPage, setCurrentPage] = useState<number>(1);
-
   const { openThermalSlip, openThermalSummary, cashierName, outletName } = useAppStore();
 
-  // Helper date functions
-  const formatToISODate = (d: Date): string => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState<number>(() => new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState<number>(() => new Date().getFullYear());
 
   const isToday = (d: Date): boolean => {
     const now = new Date();
@@ -65,19 +61,10 @@ export const TabOmzetReport: React.FC = () => {
     );
   };
 
-  const handlePrevDay = () => {
-    const prev = new Date(selectedDailyDate);
-    prev.setDate(prev.getDate() - 1);
-    setSelectedDailyDate(prev);
-  };
-
-  const handleNextDay = () => {
-    const next = new Date(selectedDailyDate);
-    next.setDate(next.getDate() + 1);
-    const now = new Date();
-    if (next <= now || isToday(next)) {
-      setSelectedDailyDate(next);
-    }
+  const handleOpenDateModal = () => {
+    setCalendarMonth(selectedDailyDate.getMonth());
+    setCalendarYear(selectedDailyDate.getFullYear());
+    setIsDateModalOpen(true);
   };
 
   // Reset page when filter changes
@@ -100,48 +87,24 @@ export const TabOmzetReport: React.FC = () => {
     []
   );
 
-  // Active days in selected month with completed transactions
-  const activeDaysInMonth = useMemo(() => {
-    const set = new Set<number>();
-    if (!completedOrders) return set;
-    const m = selectedDailyDate.getMonth();
-    const y = selectedDailyDate.getFullYear();
-    completedOrders.forEach((o) => {
-      const d = new Date(o.completedAt || o.createdAt);
-      if (d.getMonth() === m && d.getFullYear() === y) {
-        set.add(d.getDate());
-      }
-    });
-    return set;
-  }, [completedOrders, selectedDailyDate]);
-
-  // Generate all calendar days in the selected month for horizontal strip
-  const daysInSelectedMonth = useMemo(() => {
-    const year = selectedDailyDate.getFullYear();
-    const month = selectedDailyDate.getMonth();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const days: { date: Date; dayNum: number; dayName: string; hasTransactions: boolean; isTodayDate: boolean }[] = [];
+  // Calendar grid data for the month modal
+  const calendarGridData = useMemo(() => {
+    const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay(); // 0 is Sunday
     const today = new Date();
 
-    for (let d = 1; d <= totalDays; d++) {
-      const dateObj = new Date(year, month, d);
-      const dayNameShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dateObj.getDay()];
-      const isTodayDate =
-        d === today.getDate() &&
-        month === today.getMonth() &&
-        year === today.getFullYear();
-      const hasTransactions = activeDaysInMonth.has(d);
-
-      days.push({
-        date: dateObj,
-        dayNum: d,
-        dayName: dayNameShort,
-        hasTransactions,
-        isTodayDate
+    const transDays = new Set<number>();
+    if (completedOrders) {
+      completedOrders.forEach((o) => {
+        const d = new Date(o.completedAt || o.createdAt);
+        if (d.getMonth() === calendarMonth && d.getFullYear() === calendarYear) {
+          transDays.add(d.getDate());
+        }
       });
     }
-    return days;
-  }, [selectedDailyDate, activeDaysInMonth]);
+
+    return { totalDays, firstDayOfWeek, transDays, today };
+  }, [calendarYear, calendarMonth, completedOrders]);
 
   // Filter orders according to period, month, and year
   const filteredOrders = useMemo(() => {
@@ -280,121 +243,7 @@ export const TabOmzetReport: React.FC = () => {
             })}
           </div>
 
-          {/* Conditional Sub-Filters for Day, Month & Year */}
-          {period === 'daily' && (
-            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5">
-              {/* Header Navigasi Tanggal */}
-              <div className="flex items-center justify-between gap-1.5">
-                <button
-                  type="button"
-                  onClick={handlePrevDay}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors active:scale-95 shrink-0"
-                  title="Hari Sebelumnya"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                {/* Date Display with Native Calendar Trigger */}
-                <div className="relative flex items-center justify-center flex-1 mx-1">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-brand-400 transition-colors w-full justify-center">
-                    <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
-                    <span className="text-xs font-black text-slate-800 text-center truncate">
-                      {formatDateIndonesian(selectedDailyDate)}
-                    </span>
-                  </div>
-                  {/* Invisible native date picker over the label */}
-                  <input
-                    type="date"
-                    value={formatToISODate(selectedDailyDate)}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const [y, m, d] = e.target.value.split('-').map(Number);
-                        setSelectedDailyDate(new Date(y, m - 1, d));
-                      }
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    title="Klik untuk memilih tanggal kalender"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {!isToday(selectedDailyDate) && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDailyDate(new Date())}
-                      className="px-2 py-1 rounded-lg text-[10px] font-black bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition-all"
-                      title="Kembali ke Hari Ini"
-                    >
-                      Hari Ini
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleNextDay}
-                    disabled={isToday(selectedDailyDate)}
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                      isToday(selectedDailyDate)
-                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-slate-100'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-95'
-                    }`}
-                    title="Hari Berikutnya"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Strip Tanggal dalam Bulan Ini (Horizontal Scrollable) */}
-              <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
-                <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold px-0.5">
-                  <span className="font-extrabold uppercase text-slate-500">
-                    TANGGAL BULAN {MONTH_NAMES[selectedDailyDate.getMonth()].toUpperCase()}
-                  </span>
-                  <span className="flex items-center gap-1 text-[9px] text-emerald-600 font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Ada Transaksi
-                  </span>
-                </div>
-
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none scroll-smooth">
-                  {daysInSelectedMonth.map((item) => {
-                    const isSelected =
-                      item.date.getDate() === selectedDailyDate.getDate() &&
-                      item.date.getMonth() === selectedDailyDate.getMonth() &&
-                      item.date.getFullYear() === selectedDailyDate.getFullYear();
-                    return (
-                      <button
-                        key={item.dayNum}
-                        type="button"
-                        onClick={() => setSelectedDailyDate(item.date)}
-                        className={`shrink-0 w-11 h-13 rounded-xl flex flex-col items-center justify-center transition-all relative ${
-                          isSelected
-                            ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30 font-black'
-                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70 font-bold'
-                        }`}
-                      >
-                        <span className={`text-[9px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                          {item.dayName}
-                        </span>
-                        <span className="text-xs leading-none mt-1">
-                          {item.dayNum}
-                        </span>
-                        {item.hasTransactions && (
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
-                              isSelected ? 'bg-amber-300' : 'bg-emerald-500'
-                            }`}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
+          {/* Conditional Sub-Filters for Month & Year */}
           {period === 'monthly' && (
             <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
               <div className="flex items-center justify-between">
@@ -478,9 +327,40 @@ export const TabOmzetReport: React.FC = () => {
         {/* 2. Hero Metric Card (Omzet Bersih) */}
         <section className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-soft space-y-3">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
-              <Calendar className="w-3.5 h-3.5 text-brand-600" />
-              <span>{summary.dateLabel}</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {period === 'daily' ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleOpenDateModal}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-brand-700 group transition-colors"
+                    title="Pilih tanggal di bulan ini"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-brand-50 group-hover:bg-brand-100 text-brand-600 flex items-center justify-center border border-brand-200/70 transition-transform active:scale-95 shadow-2xs">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-extrabold text-slate-800 group-hover:text-brand-700">
+                      {summary.dateLabel}
+                    </span>
+                  </button>
+
+                  {!isToday(selectedDailyDate) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDailyDate(new Date())}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-all"
+                      title="Kembali ke hari ini"
+                    >
+                      Hari Ini
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                  <Calendar className="w-3.5 h-3.5 text-brand-600" />
+                  <span>{summary.dateLabel}</span>
+                </div>
+              )}
             </div>
             <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70">
               {summary.totalTransactions} Transaksi Selesai
@@ -711,6 +591,152 @@ export const TabOmzetReport: React.FC = () => {
         </section>
 
       </div>
+
+      {/* Modal Kalender Pemilih Tanggal Harian */}
+      {isDateModalOpen && (
+        <div 
+          onClick={() => setIsDateModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-4 border border-slate-200 text-left space-y-3.5 animate-in zoom-in-95 duration-200"
+          >
+            {/* Header Modal Kalender */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (calendarMonth === 0) {
+                      setCalendarMonth(11);
+                      setCalendarYear(calendarYear - 1);
+                    } else {
+                      setCalendarMonth(calendarMonth - 1);
+                    }
+                  }}
+                  className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors"
+                  title="Bulan Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <h4 className="font-black text-xs text-slate-800 tracking-wide uppercase px-1">
+                  {MONTH_NAMES[calendarMonth]} {calendarYear}
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (calendarMonth === 11) {
+                      setCalendarMonth(0);
+                      setCalendarYear(calendarYear + 1);
+                    } else {
+                      setCalendarMonth(calendarMonth + 1);
+                    }
+                  }}
+                  className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors"
+                  title="Bulan Berikutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDateModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Nama-nama Hari (7 Kolom) */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d, i) => (
+                <span
+                  key={d}
+                  className={`text-[10px] font-bold ${
+                    i === 0 ? 'text-red-500' : 'text-slate-400'
+                  }`}
+                >
+                  {d}
+                </span>
+              ))}
+            </div>
+
+            {/* Grid Tanggal */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {/* Sel kosong hari pertama */}
+              {Array.from({ length: calendarGridData.firstDayOfWeek }).map((_, idx) => (
+                <div key={`empty-${idx}`} className="w-8 h-8" />
+              ))}
+
+              {/* Tanggal 1 s/d total hari dalam bulan ini */}
+              {Array.from({ length: calendarGridData.totalDays }, (_, i) => i + 1).map((day) => {
+                const isSelected =
+                  selectedDailyDate.getDate() === day &&
+                  selectedDailyDate.getMonth() === calendarMonth &&
+                  selectedDailyDate.getFullYear() === calendarYear;
+
+                const isTodayDate =
+                  calendarGridData.today.getDate() === day &&
+                  calendarGridData.today.getMonth() === calendarMonth &&
+                  calendarGridData.today.getFullYear() === calendarYear;
+
+                const hasTrans = calendarGridData.transDays.has(day);
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDailyDate(new Date(calendarYear, calendarMonth, day));
+                      setIsDateModalOpen(false);
+                    }}
+                    className={`w-8 h-8 rounded-xl flex flex-col items-center justify-center mx-auto text-xs font-bold transition-all relative ${
+                      isSelected
+                        ? 'bg-brand-600 text-white font-black shadow-md shadow-brand-600/30 scale-105'
+                        : isTodayDate
+                        ? 'bg-brand-50 text-brand-700 border border-brand-300 font-extrabold'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <span>{day}</span>
+                    {hasTrans && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full absolute bottom-0.5 ${
+                          isSelected ? 'bg-amber-300' : 'bg-emerald-500'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer Modal */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+              <span className="flex items-center gap-1 text-slate-500 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Ada Transaksi
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDailyDate(new Date());
+                  setIsDateModalOpen(false);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 border border-brand-200 font-extrabold hover:bg-brand-100 transition-colors"
+              >
+                Pilih Hari Ini
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

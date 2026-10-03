@@ -40,11 +40,20 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'tc-campur',
-    name: 'Taichan Campur (10 tsk)',
+    name: 'Taichan Kulit + Daging (10 tsk)',
     category: 'taichan',
     type: 'portion',
     price: 18000,
-    description: 'Kombinasi 5 tusuk daging ayam + 5 tusuk kulit juicy',
+    description: 'Kombinasi 5 tusuk kulit juicy + 5 tusuk daging ayam',
+    skewerCount: 10
+  },
+  {
+    id: 'tc-daging-krispy',
+    name: 'Taichan Daging + Krispy (10 tsk)',
+    category: 'taichan',
+    type: 'portion',
+    price: 20000,
+    description: 'Kombinasi sate taichan daging bakar + sate taichan krispy renyah',
     skewerCount: 10
   },
   {

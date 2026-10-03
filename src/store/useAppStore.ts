@@ -155,7 +155,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   checkPendingSync: async () => {
     try {
-      const count = await db.orders.where('synced').equals(0 as any).or('synced').equals(false as any).count();
+      const allOrders = await db.orders.toArray();
+      const count = allOrders.filter((o) => !o.synced).length;
       set({ pendingSyncCount: count });
     } catch {
       // ignore

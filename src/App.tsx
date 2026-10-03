@@ -44,7 +44,15 @@ export const App: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Periodic check for unsynced orders while online (every 15s)
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        performSync();
+      }
+    }, 15000);
+
     return () => {
+      clearInterval(syncInterval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };

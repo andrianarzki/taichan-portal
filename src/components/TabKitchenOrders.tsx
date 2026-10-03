@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Order } from '../types';
+import { pushOrderToSupabase } from '../services/supabase';
 import { formatRupiah, formatTimeWIB } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
 import { 
@@ -45,6 +46,13 @@ export const TabKitchenOrders: React.FC = () => {
   const handleCompleteOrder = async (order: Order) => {
     try {
       const completedAt = new Date().toISOString();
+      const updatedOrder: Order = {
+        ...order,
+        status: 'DONE',
+        completedAt,
+        synced: false
+      };
+
       await db.orders.update(order.id, {
         status: 'DONE',
         completedAt,
@@ -52,6 +60,7 @@ export const TabKitchenOrders: React.FC = () => {
       });
 
       if (effectiveOnline) {
+        pushOrderToSupabase(updatedOrder).catch((e) => console.error('Cloud sync error on complete:', e));
         performSync();
       }
     } catch (err) {

@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     items JSONB NOT NULL DEFAULT '[]'::jsonb, -- Rincian pesanan (array of objects)
     total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
     payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('CASH', 'QRIS')),
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DONE')),
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DONE', 'completed', 'COMPLETED')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
     notes TEXT
@@ -48,6 +48,10 @@ ON public.orders
 FOR ALL 
 USING (true) 
 WITH CHECK (true);
+
+-- CATATAN: Jika tabel orders sudah Anda buat sebelumnya di Supabase, jalankan 2 baris berikut di SQL Editor agar status 'completed' diterima:
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_status_check CHECK (status IN ('ACTIVE', 'DONE', 'completed', 'COMPLETED'));
 ```
 
 ### Langkah 3 & 4: Kredensial & Konfigurasi Supabase

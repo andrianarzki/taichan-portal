@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAppStore } from '../store/useAppStore';
 import { INITIAL_MENU_ITEMS } from '../data/menu';
 import { db, getNextOrderId } from '../db';
+import { pushOrderToSupabase } from '../services/supabase';
 import { formatRupiah } from '../utils/format';
 import { Order, OrderItem } from '../types';
 import { 
@@ -154,6 +155,7 @@ export const TabInputOrder: React.FC = () => {
 
       // Trigger cloud sync if online
       if (effectiveOnline) {
+        pushOrderToSupabase(newOrder).catch((e) => console.error('Cloud sync error:', e));
         performSync();
       }
 

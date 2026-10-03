@@ -47,9 +47,12 @@ body {
     top: 0;
     width: 58mm !important;
     max-width: 58mm !important;
-    padding: 2mm !important;
+    padding: 2mm 3mm !important;
     margin: 0 !important;
-    font-size: 9pt !important;
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+    color: #000000 !important;
+    background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
   }

@@ -55,7 +55,7 @@ export const TabOmzetReport: React.FC = () => {
   // Live query all completed orders
   const completedOrders = useLiveQuery(
     async () => {
-      const orders = await db.orders.where('status').equals('DONE').toArray();
+      const orders = await db.orders.filter(o => o.status === 'DONE' || o.status === 'completed').toArray();
       // Sort reverse chronological (newest completed first)
       return orders.sort((a, b) => {
         const timeA = new Date(a.completedAt || a.createdAt).getTime();

@@ -7,6 +7,9 @@ export const Header: React.FC = () => {
     effectiveOnline,
     isSimulatedOffline,
     setSimulatedOffline,
+    isSyncing,
+    pendingSyncCount,
+    performSync,
     setIsProfileOpen
   } = useAppStore();
 
@@ -15,13 +18,13 @@ export const Header: React.FC = () => {
       <div className="w-full px-4 h-14 flex items-center justify-between">
         
         {/* Left: Brand & Connection Status */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Logo Sate Melingkar Merah */}
           <div className="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center shadow-sm text-white shrink-0">
             <span className="text-base select-none">🍢</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-extrabold text-[15px] tracking-tight text-slate-900 leading-none">
               Taichan Portal
             </span>
@@ -49,6 +52,24 @@ export const Header: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* Syncing indicator or Pending count */}
+            {isSyncing ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
+                Sync...
+              </span>
+            ) : pendingSyncCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => performSync()}
+                title="Ada data antrean belum tersinkron ke cloud. Klik untuk sinkronisasi."
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors animate-bounce"
+              >
+                <span>⚡</span>
+                {pendingSyncCount} sync
+              </button>
+            ) : null}
           </div>
         </div>
 

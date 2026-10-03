@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { db } from './db';
+import { initCrossDeviceSync } from './services/supabase';
 import { Header } from './components/Header';
 import { NavigationTabs } from './components/NavigationTabs';
 import { TabInputOrder } from './components/TabInputOrder';
@@ -28,10 +29,14 @@ export const App: React.FC = () => {
       });
     } else {
       checkPendingSync();
-      performSync();
     }
 
-    // 2. Setup browser network event listeners
+    // 2. Initialize Real-Time Cross-Device Synchronization
+    const cleanupCrossDeviceSync = initCrossDeviceSync(() => {
+      checkPendingSync();
+    });
+
+    // 3. Setup browser network event listeners
     const handleOnline = () => {
       setRealOnline(true);
       performSync();
@@ -41,20 +46,21 @@ export const App: React.FC = () => {
       setRealOnline(false);
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Periodic check for unsynced orders while online (every 15s)
-    const syncInterval = setInterval(() => {
-      if (navigator.onLine) {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
         performSync();
       }
-    }, 15000);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(syncInterval);
+      cleanupCrossDeviceSync();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

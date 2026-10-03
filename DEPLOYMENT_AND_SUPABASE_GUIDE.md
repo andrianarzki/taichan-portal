@@ -49,9 +49,22 @@ FOR ALL
 USING (true) 
 WITH CHECK (true);
 
--- CATATAN: Jika tabel orders sudah Anda buat sebelumnya di Supabase, jalankan 2 baris berikut di SQL Editor agar status 'completed' diterima:
+-- CATATAN: Jika tabel orders sudah Anda buat sebelumnya di Supabase, jalankan baris berikut di SQL Editor agar status 'completed' dan Realtime Multi-Device Sync aktif:
 ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;
 ALTER TABLE public.orders ADD CONSTRAINT orders_status_check CHECK (status IN ('ACTIVE', 'DONE', 'completed', 'COMPLETED'));
+
+-- 5. Aktifkan Supabase Realtime agar semua HP / Laptop sinkron secara live
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'orders'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+END $$;
+
+ALTER TABLE public.orders REPLICA IDENTITY FULL;
 ```
 
 ### Langkah 3 & 4: Kredensial & Konfigurasi Supabase
@@ -63,7 +76,7 @@ Kredensial proyek Supabase Anda:
   ```
 * **Project API Key (anon / public):**
   ```text
-  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzYndtdXJzamhvdGJyemlkamNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NTc2MzgsImV4cCI6MjEwNjUzMzYzOH0.r-JXSul59phhWivlBeKcPR0ei9ZTEvO_c-Nxp9Gj4qw
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   ```
 
 #### Konfigurasi Kredensial di Aplikasi & Vercel:

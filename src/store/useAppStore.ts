@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { PaymentMethod, Order } from '../types';
-import { syncPendingOrders } from '../services/supabase';
+import { syncAllBidirectional } from '../services/supabase';
 import { db } from '../db';
 
 interface CartItemState {
@@ -166,7 +166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!get().effectiveOnline) return;
     set({ isSyncing: true });
     try {
-      await syncPendingOrders();
+      await syncAllBidirectional();
       await get().checkPendingSync();
     } finally {
       set({ isSyncing: false });

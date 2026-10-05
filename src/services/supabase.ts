@@ -231,6 +231,34 @@ export async function pullOrdersFromSupabase(): Promise<{ pulledCount: number; e
 }
 
 /**
+ * Delete all orders from the Supabase cloud database
+ */
+export async function clearAllOrdersFromSupabase(): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase client is not configured' };
+  }
+
+  try {
+    // PostgREST delete requires a filter. neq('id', '') matches all existing order records.
+    const { error } = await client
+      .from('orders')
+      .delete()
+      .neq('id', '');
+
+    if (error) {
+      console.error('Failed to clear orders from Supabase:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in clearAllOrdersFromSupabase:', err);
+    return { success: false, error: err?.message };
+  }
+}
+
+/**
  * Two-way sync: Push any local unsynced orders first, then pull all cloud orders
  */
 export async function syncAllBidirectional(): Promise<void> {

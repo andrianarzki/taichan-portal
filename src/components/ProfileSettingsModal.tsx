@@ -1,36 +1,76 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { db } from '../db';
+import { clearAllOrdersFromSupabase } from '../services/supabase';
 import { 
   Settings, 
   X, 
-  Wifi, 
-  WifiOff, 
-  RotateCcw, 
-  Check 
+  Trash2, 
+  Check, 
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 export const ProfileSettingsModal: React.FC = () => {
   const {
     isProfileOpen,
     setIsProfileOpen,
-    isSimulatedOffline,
-    setSimulatedOffline,
     effectiveOnline,
-    performSync,
-    checkPendingSync
+    checkPendingSync,
+    resetInputForm
   } = useAppStore();
 
+  const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   if (!isProfileOpen) return null;
 
   const handleResetData = async () => {
-    if (confirm('Apakah Anda yakin ingin mengosongkan semua data antrean & pesanan?')) {
+    const isConfirmed = window.confirm(
+      'Apakah Anda yakin ingin mengosongkan SEMUA data antrean & pesanan?\n\n' +
+      'Tindakan ini akan menghapus permanen semua pesanan di perangkat ini (IndexedDB) dan di cloud database Supabase.'
+    );
+
+    if (!isConfirmed) return;
+
+    setIsResetting(true);
+    setFeedbackMessage(null);
+
+    try {
+      let supabaseMessage = '';
+
+      // 1. Delete all orders from Supabase cloud
+      if (effectiveOnline) {
+        const supabaseRes = await clearAllOrdersFromSupabase();
+        if (!supabaseRes.success) {
+          console.warn('Gagal menghapus orders di Supabase:', supabaseRes.error);
+          supabaseMessage = ' (Cloud: Gagal terhubung)';
+        } else {
+          supabaseMessage = ' (Lokal & Supabase)';
+        }
+      } else {
+        supabaseMessage = ' (Lokal saja, Supabase Offline)';
+      }
+
+      // 2. Clear all orders from local IndexedDB
       await db.orders.clear();
+
+      // 3. Reset form states & pending count
+      resetInputForm();
       await checkPendingSync();
+
       setResetSuccess(true);
-      setTimeout(() => setResetSuccess(false), 2000);
+      setFeedbackMessage(`Semua data pesanan berhasil dikosongkan${supabaseMessage}!`);
+      setTimeout(() => {
+        setResetSuccess(false);
+        setFeedbackMessage(null);
+      }, 3500);
+    } catch (err: any) {
+      console.error('Gagal mengosongkan data pesanan:', err);
+      alert('Terjadi kesalahan saat mengosongkan data: ' + (err?.message || err));
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -57,61 +97,44 @@ export const ProfileSettingsModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Section 1: Simulasi Mode Jaringan Offline-First */}
-        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {effectiveOnline ? (
-                <Wifi className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <WifiOff className="w-4 h-4 text-amber-600" />
-              )}
-              <div>
-                <span className="font-extrabold text-xs text-slate-900 block">
-                  Simulasi Offline Mode
-                </span>
-                <span className="text-[10px] text-slate-500">
-                  {effectiveOnline ? 'Status: Terhubung Jaringan' : 'Status: Beroperasi Tanpa Internet'}
-                </span>
-              </div>
+        {/* Section: Manajemen Basis Data & Reset Pesanan */}
+        <div className="p-4 bg-red-50/70 rounded-2xl border border-red-200/80 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
             </div>
-
-            {/* Toggle switch */}
-            <button
-              type="button"
-              onClick={() => setSimulatedOffline(!isSimulatedOffline)}
-              className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
-                isSimulatedOffline ? 'bg-amber-600' : 'bg-slate-300'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  isSimulatedOffline ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
+            <div>
+              <h4 className="font-bold text-xs text-red-950">Kosongkan Data Pesanan</h4>
+              <p className="text-[11px] text-red-800/80 leading-relaxed mt-0.5">
+                Menghapus seluruh antrean dapur dan riwayat transaksi, baik di memori browser lokal maupun tabel <strong className="font-semibold">orders</strong> di cloud Supabase.
+              </p>
+            </div>
           </div>
-          <p className="text-[10px] text-slate-400 leading-normal">
-            Aktifkan untuk menguji fitur <strong>Offline-First</strong>: semua pencatatan pesanan dan antrean berjalan instan di IndexedDB tanpa jeda waktu.
-          </p>
-        </div>
 
-        {/* Section 2: Reset Data Demo */}
-        {/* Section 2: Reset / Kosongkan Data */}
-        <div className="flex items-center justify-between pt-1">
           <button
             type="button"
+            disabled={isResetting}
             onClick={handleResetData}
-            className="text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
+            className="w-full h-10 px-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-all"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Kosongkan Semua Data Pesanan
+            {isResetting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Menghapus data pesanan...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4" />
+                <span>Kosongkan Semua Data Pesanan</span>
+              </>
+            )}
           </button>
 
-          {resetSuccess && (
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <Check className="w-3 h-3" /> Data Dikosongkan
-            </span>
+          {resetSuccess && feedbackMessage && (
+            <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-[11px] font-bold flex items-center gap-2 animate-in fade-in duration-200">
+              <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>{feedbackMessage}</span>
+            </div>
           )}
         </div>
 

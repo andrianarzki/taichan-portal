@@ -28,12 +28,10 @@ interface AppState {
 
   // Connectivity & Sync
   isRealOnline: boolean;
-  isSimulatedOffline: boolean;
   effectiveOnline: boolean;
   isSyncing: boolean;
   pendingSyncCount: number;
   setRealOnline: (online: boolean) => void;
-  setSimulatedOffline: (sim: boolean) => void;
   checkPendingSync: () => Promise<void>;
   performSync: () => Promise<void>;
 
@@ -130,26 +128,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   resetInputForm: () => set({ tableInfo: '', cart: {}, paymentMethod: 'CASH' }),
 
   isRealOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-  isSimulatedOffline: false,
   effectiveOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
   isSyncing: false,
   pendingSyncCount: 0,
 
   setRealOnline: (online) => {
-    set((state) => ({
+    set({
       isRealOnline: online,
-      effectiveOnline: online && !state.isSimulatedOffline
-    }));
+      effectiveOnline: online
+    });
     if (online) {
-      get().performSync();
-    }
-  },
-  setSimulatedOffline: (sim) => {
-    set((state) => ({
-      isSimulatedOffline: sim,
-      effectiveOnline: state.isRealOnline && !sim
-    }));
-    if (!sim && get().isRealOnline) {
       get().performSync();
     }
   },

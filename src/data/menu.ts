@@ -1,78 +1,60 @@
 import { MenuItem } from '../types';
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = [
-  // SATE TAICHAN (Urutan sesuai nota: Full Daging, Full Crispy, Full Kulit, Daging+Crispy, Daging+Kulit, Crispy+Kulit, +Satuan)
+  // MAKANAN (Urutan & nama sesuai nota menu fisik)
   {
     id: 'tc-daging-porsi',
-    name: 'Taichan Daging (10 tsk)',
+    name: 'Full Daging',
     category: 'taichan',
     type: 'portion',
     price: 20000,
-    description: 'Daging ayam fillet bakar bumbu gurih asin + sambal taichan pedas segar & jeruk nipis',
+    description: '10 tusuk sate daging ayam fillet bakar bumbu gurih asin + sambal pedas segar & jeruk nipis',
     skewerCount: 10
   },
   {
     id: 'tc-krispy',
-    name: 'Taichan Crispy (10 tsk)',
+    name: 'Full Crispy',
     category: 'taichan',
     type: 'portion',
     price: 20000,
-    description: 'Sate taichan balur tepung krispy renyah spesial',
+    description: '10 tusuk sate balur tepung krispy renyah spesial',
     skewerCount: 10
   },
   {
     id: 'tc-kulit-porsi',
-    name: 'Taichan Kulit (10 tsk)',
+    name: 'Full Kulit',
     category: 'taichan',
     type: 'portion',
     price: 16000,
-    description: 'Kulit ayam juicy gurih dibakar renyah lembut',
+    description: '10 tusuk sate kulit ayam juicy gurih dibakar renyah lembut',
     skewerCount: 10
   },
   {
     id: 'tc-daging-krispy',
-    name: 'Taichan Daging + Crispy (10 tsk)',
+    name: 'Daging + Crispy',
     category: 'taichan',
     type: 'portion',
     price: 20000,
-    description: 'Kombinasi sate taichan daging bakar + sate taichan krispy renyah',
+    description: 'Kombinasi sate daging bakar + sate krispy renyah (10 tusuk)',
     skewerCount: 10
   },
   {
     id: 'tc-campur',
-    name: 'Taichan Daging + Kulit (10 tsk)',
+    name: 'Daging + Kulit',
     category: 'taichan',
     type: 'portion',
     price: 18000,
-    description: 'Kombinasi sate daging ayam bakar + sate kulit juicy gurih',
+    description: 'Kombinasi sate daging ayam bakar + sate kulit juicy gurih (10 tusuk)',
     skewerCount: 10
   },
   {
     id: 'tc-crispy-kulit',
-    name: 'Taichan Crispy + Kulit (10 tsk)',
+    name: 'Crispy + Kulit',
     category: 'taichan',
     type: 'portion',
     price: 18000,
-    description: 'Kombinasi sate taichan krispy renyah + sate kulit juicy gurih',
+    description: 'Kombinasi sate krispy renyah + sate kulit juicy gurih (10 tusuk)',
     skewerCount: 10
-  },
-  {
-    id: 'tc-daging-satuan',
-    name: 'Taichan Daging (Satuan / 1 tsk)',
-    category: 'taichan',
-    type: 'unit',
-    price: 2000,
-    description: 'Tambah tusukan daging satuan sesuai selera',
-    skewerCount: 1
-  },
-  {
-    id: 'tc-kulit-satuan',
-    name: 'Taichan Kulit (Satuan / 1 tsk)',
-    category: 'taichan',
-    type: 'unit',
-    price: 1500,
-    description: 'Tambah tusukan kulit satuan sesuai selera',
-    skewerCount: 1
   },
 
   // MAKANAN PENDAMPING (Urutan sesuai nota: Lontong dulu, baru Nasi Jeruk)
@@ -96,7 +78,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // MINUMAN (Urutan sesuai nota: Aqua, Es Tea, Tea Hangat, Nutrisari)
   {
     id: 'drink-air-mineral',
-    name: 'Aqua / Air Mineral',
+    name: 'Aqua',
     category: 'drink',
     type: 'portion',
     price: 5000,

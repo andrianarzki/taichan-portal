@@ -5,8 +5,6 @@ import { Settings, WifiOff } from 'lucide-react';
 export const Header: React.FC = () => {
   const {
     effectiveOnline,
-    isSimulatedOffline,
-    setSimulatedOffline,
     isSyncing,
     pendingSyncCount,
     performSync,
@@ -29,15 +27,13 @@ export const Header: React.FC = () => {
               Taichan Portal
             </span>
             
-            {/* Online / Offline clickable badge */}
-            <button
-              type="button"
-              onClick={() => setSimulatedOffline(!isSimulatedOffline)}
-              title={effectiveOnline ? 'Status Online (Klik untuk simulasi offline)' : 'Status Offline (Klik untuk online)'}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-colors ${
+            {/* Online / Offline status badge */}
+            <span
+              title={effectiveOnline ? 'Status: Terhubung Jaringan & Cloud' : 'Status: Beroperasi Tanpa Internet (Offline)'}
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide select-none ${
                 effectiveOnline
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
-                  : 'bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                  : 'bg-amber-50 text-amber-700 border border-amber-300'
               }`}
             >
               {effectiveOnline ? (
@@ -51,7 +47,7 @@ export const Header: React.FC = () => {
                   Offline
                 </>
               )}
-            </button>
+            </span>
 
             {/* Syncing indicator or Pending count */}
             {isSyncing ? (

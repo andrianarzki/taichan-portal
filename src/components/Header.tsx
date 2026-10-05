@@ -1,14 +1,13 @@
 import React from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { Settings, WifiOff } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
     effectiveOnline,
     isSyncing,
     pendingSyncCount,
-    performSync,
-    setIsProfileOpen
+    performSync
   } = useAppStore();
 
   return (
@@ -67,17 +66,6 @@ export const Header: React.FC = () => {
               </button>
             ) : null}
           </div>
-        </div>
-
-        {/* Right: Pengaturan Sistem */}
-        <div className="flex items-center">
-          <button
-            onClick={() => setIsProfileOpen(true)}
-            className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all shadow-xs"
-            title="Pengaturan Sistem & Database"
-          >
-            <Settings className="w-4 h-4 stroke-[2.5]" />
-          </button>
         </div>
 
       </div>

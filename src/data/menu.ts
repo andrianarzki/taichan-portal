@@ -56,6 +56,24 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     description: 'Kombinasi sate krispy renyah + sate kulit juicy gurih (10 tusuk)',
     skewerCount: 10
   },
+  {
+    id: 'tc-daging-satuan',
+    name: 'Daging (1 tsk)',
+    category: 'taichan',
+    type: 'unit',
+    price: 2000,
+    description: 'Tambah tusukan daging satuan sesuai selera',
+    skewerCount: 1
+  },
+  {
+    id: 'tc-kulit-satuan',
+    name: 'Kulit (1 tsk)',
+    category: 'taichan',
+    type: 'unit',
+    price: 1500,
+    description: 'Tambah tusukan kulit satuan sesuai selera',
+    skewerCount: 1
+  },
 
   // MAKANAN PENDAMPING (Urutan sesuai nota: Lontong dulu, baru Nasi Jeruk)
   {

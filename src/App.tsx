@@ -8,7 +8,6 @@ import { TabInputOrder } from './components/TabInputOrder';
 import { TabKitchenOrders } from './components/TabKitchenOrders';
 import { TabOmzetReport } from './components/TabOmzetReport';
 import { ThermalSlipModal } from './components/ThermalSlipModal';
-import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 
 export const App: React.FC = () => {
   const {
@@ -84,7 +83,6 @@ export const App: React.FC = () => {
 
         {/* Modals & Dialogs */}
         <ThermalSlipModal />
-        <ProfileSettingsModal />
 
       </div>
     </div>

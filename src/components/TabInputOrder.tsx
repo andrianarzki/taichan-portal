@@ -330,7 +330,7 @@ export const TabInputOrder: React.FC = () => {
                 <span className="text-brand-600 text-base">🔥</span>
                 <h3 className="font-extrabold text-sm text-slate-900">Sate Taichan</h3>
               </div>
-              <span className="text-[11px] font-semibold text-slate-500">10 Tusuk / Porsi</span>
+              <span className="text-[11px] font-semibold text-slate-500">Porsi & Satuan</span>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs divide-y divide-slate-100 overflow-hidden">

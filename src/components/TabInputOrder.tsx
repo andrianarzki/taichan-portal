@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 
 const DINE_IN_TABLES = [
-  'Meja 01', 'Meja 02', 'Meja 03', 'Meja 04', 'Meja 05',
-  'Meja 06', 'Meja 07', 'Meja 08', 'Meja 09', 'Meja 10'
+  'Meja 1', 'Meja 2', 'Meja 3', 'Meja 4', 'Meja 5',
+  'Meja 6', 'Meja 7', 'Meja 8', 'Meja 9', 'Meja 0'
 ];
 
 export const TabInputOrder: React.FC = () => {
@@ -192,7 +192,7 @@ export const TabInputOrder: React.FC = () => {
               onClick={() => {
                 setOrderType('dine-in');
                 if (tableInfo.toLowerCase().includes('takeaway') || tableInfo.toLowerCase().includes('bungkus') || !tableInfo) {
-                  setTableInfo('Meja 01');
+                  setTableInfo(availableDineInChips[0] || 'Meja 1');
                 }
                 if (errorMessage) setErrorMessage(null);
               }}
@@ -248,7 +248,7 @@ export const TabInputOrder: React.FC = () => {
                 }
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder={orderType === 'dine-in' ? "Contoh: Meja 01, Meja 02..." : "Contoh: Takeaway, Mas Dani, Bungkus 01..."}
+              placeholder={orderType === 'dine-in' ? "Contoh: Meja 1, Meja 2, Meja 0..." : "Contoh: Takeaway, Mas Dani, Bungkus 01..."}
               className="w-full h-11 pl-3.5 pr-10 text-sm font-bold text-slate-900 placeholder-slate-400 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all"
             />
             {tableInfo && (
@@ -263,11 +263,11 @@ export const TabInputOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Quick Table Selector for Dine-In (Meja 01 s/d 10) */}
+          {/* Quick Table Selector for Dine-In (Meja 1 s/d 9, Meja 0) */}
           {orderType === 'dine-in' && (
             <div className="mt-3">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5 px-0.5">
-                <span>PILIH MEJA CEPAT (01 - 10):</span>
+                <span>PILIH MEJA CEPAT (1 - 9, 0):</span>
                 <span className="text-[10px] text-brand-600 font-extrabold">
                   {availableDineInChips.length} Meja Tersedia
                 </span>

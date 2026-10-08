@@ -67,18 +67,83 @@ export function isSupabaseActive(): boolean {
   return getSupabaseClient() !== null;
 }
 
+const PENDING_DELETIONS_KEY = 'taichan_pending_deletions';
+
+export function getPendingDeletions(): string[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addPendingDeletion(orderId: string): void {
+  try {
+    const list = getPendingDeletions();
+    if (!list.includes(orderId)) {
+      list.push(orderId);
+      localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(list));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function clearPendingDeletions(orderIds: string[]): void {
+  try {
+    const list = getPendingDeletions();
+    const updated = list.filter((id) => !orderIds.includes(id));
+    localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Delete a single order from Supabase cloud database
+ */
+export async function deleteOrderFromSupabase(orderId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) {
+    addPendingDeletion(orderId);
+    return true;
+  }
+
+  try {
+    const { error } = await client.from('orders').delete().eq('id', orderId);
+    if (error) {
+      console.error('Gagal menghapus pesanan dari Supabase:', error);
+      addPendingDeletion(orderId);
+      return false;
+    }
+    clearPendingDeletions([orderId]);
+    return true;
+  } catch (err) {
+    console.error('Error saat menghapus pesanan dari Supabase:', err);
+    addPendingDeletion(orderId);
+    return false;
+  }
+}
+
 /**
  * Helper to map a Supabase record to local TypeScript Order format
  */
 export function mapSupabaseRowToOrder(row: any): Order {
+  let mappedStatus: 'ACTIVE' | 'DONE' | 'CANCELLED' = 'ACTIVE';
+  if (row.status === 'completed' || row.status === 'DONE' || row.status === 'COMPLETED') {
+    mappedStatus = 'DONE';
+  } else if (row.status === 'CANCELLED' || row.status === 'cancelled') {
+    mappedStatus = 'CANCELLED';
+  }
+
   return {
     id: row.id,
     tableInfo: row.table_info || '',
     items: Array.isArray(row.items) ? row.items : [],
     totalAmount: Number(row.total_amount) || 0,
     paymentMethod: row.payment_method || 'CASH',
-    // Support both 'completed' and 'DONE' for completed status
-    status: (row.status === 'completed' || row.status === 'DONE') ? 'DONE' : 'ACTIVE',
+    status: mappedStatus,
     createdAt: row.created_at || new Date().toISOString(),
     completedAt: row.completed_at || undefined,
     notes: row.notes || undefined,
@@ -156,6 +221,19 @@ export async function syncPendingOrders(): Promise<{ syncedCount: number; error?
 
     const client = getSupabaseClient();
     if (client) {
+      // Sync any pending deletions to Supabase
+      const pendingDeletions = getPendingDeletions();
+      if (pendingDeletions.length > 0) {
+        try {
+          const { error } = await client.from('orders').delete().in('id', pendingDeletions);
+          if (!error) {
+            clearPendingDeletions(pendingDeletions);
+          }
+        } catch (e) {
+          console.warn('Pending deletions sync skipped:', e);
+        }
+      }
+
       let successfulCount = 0;
       for (const order of unsyncedOrders) {
         const success = await pushOrderToSupabase(order);
@@ -210,9 +288,14 @@ export async function pullOrdersFromSupabase(): Promise<{ pulledCount: number; e
     // Get current local unsynced orders to protect them from being overwritten
     const localOrders = await db.orders.toArray();
     const unsyncedLocalIds = new Set(localOrders.filter((o) => !o.synced).map((o) => o.id));
+    const pendingDeletions = new Set(getPendingDeletions());
 
     const cloudOrdersToStore: Order[] = [];
     for (const row of data) {
+      // Do not pull back orders that are marked for deletion or cancelled
+      if (pendingDeletions.has(row.id)) continue;
+      if (row.status === 'CANCELLED' || row.status === 'cancelled') continue;
+
       // If this device has an offline pending change for this order, preserve local change
       if (!unsyncedLocalIds.has(row.id)) {
         cloudOrdersToStore.push(mapSupabaseRowToOrder(row));

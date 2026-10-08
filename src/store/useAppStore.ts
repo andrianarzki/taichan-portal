@@ -60,7 +60,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'input',
   setActiveTab: (tab) => set({ activeTab: tab }),
 
-  tableInfo: 'Meja 01',
+  tableInfo: 'Meja 1',
   setTableInfo: (val) => set({ tableInfo: val }),
   
   cart: {},

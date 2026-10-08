@@ -1,7 +1,7 @@
 export type MenuCategory = 'taichan' | 'side' | 'drink';
 export type MenuType = 'portion' | 'unit';
 export type PaymentMethod = 'CASH' | 'QRIS';
-export type OrderStatus = 'ACTIVE' | 'DONE' | 'completed';
+export type OrderStatus = 'ACTIVE' | 'DONE' | 'completed' | 'CANCELLED';
 export type FilterPeriod = 'daily' | 'monthly' | 'yearly';
 
 export interface MenuItem {

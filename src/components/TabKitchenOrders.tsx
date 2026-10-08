@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Order } from '../types';
-import { pushOrderToSupabase } from '../services/supabase';
+import { pushOrderToSupabase, deleteOrderFromSupabase, addPendingDeletion } from '../services/supabase';
 import { formatRupiah, formatTimeWIB } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
 import { 
@@ -10,12 +10,16 @@ import {
   CheckCircle, 
   Printer, 
   ArrowRight,
-  ChefHat
+  ChefHat,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 export const TabKitchenOrders: React.FC = () => {
   const { setActiveTab, openThermalSlip, effectiveOnline, performSync } = useAppStore();
   const [kitchenTab, setKitchenTab] = useState<'all' | 'dine-in' | 'takeaway'>('all');
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Live query active orders sorted by createdAt ASC (FIFO)
   const activeOrders = useLiveQuery(
@@ -65,6 +69,27 @@ export const TabKitchenOrders: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to complete order:', err);
+    }
+  };
+
+  const confirmCancelOrder = async (order: Order) => {
+    setIsCancelling(true);
+    try {
+      // 1. Hapus dari database lokal (Dexie) agar nomor meja langsung kosong & tidak pernah masuk omzet
+      await db.orders.delete(order.id);
+
+      // 2. Hapus dari database cloud (Supabase) jika online, atau catat pending deletion
+      if (effectiveOnline) {
+        await deleteOrderFromSupabase(order.id);
+        performSync();
+      } else {
+        addPendingDeletion(order.id);
+      }
+      setOrderToCancel(null);
+    } catch (err) {
+      console.error('Failed to cancel order:', err);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -179,6 +204,7 @@ export const TabKitchenOrders: React.FC = () => {
                           order={order}
                           queueNumber={idx + 1}
                           onComplete={() => handleCompleteOrder(order)}
+                          onCancel={() => setOrderToCancel(order)}
                           onPrint={() => openThermalSlip(order)}
                         />
                       ))}
@@ -205,6 +231,7 @@ export const TabKitchenOrders: React.FC = () => {
                           queueNumber={idx + 1}
                           takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
                           onComplete={() => handleCompleteOrder(order)}
+                          onCancel={() => setOrderToCancel(order)}
                           onPrint={() => openThermalSlip(order)}
                         />
                       ))}
@@ -228,6 +255,7 @@ export const TabKitchenOrders: React.FC = () => {
                       order={order}
                       queueNumber={idx + 1}
                       onComplete={() => handleCompleteOrder(order)}
+                      onCancel={() => setOrderToCancel(order)}
                       onPrint={() => openThermalSlip(order)}
                     />
                   ))}
@@ -250,6 +278,7 @@ export const TabKitchenOrders: React.FC = () => {
                       queueNumber={idx + 1}
                       takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
                       onComplete={() => handleCompleteOrder(order)}
+                      onCancel={() => setOrderToCancel(order)}
                       onPrint={() => openThermalSlip(order)}
                     />
                   ))}
@@ -261,6 +290,75 @@ export const TabKitchenOrders: React.FC = () => {
         )}
 
       </div>
+
+      {/* Modal Konfirmasi Cancel Order */}
+      {orderToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-extrabold text-slate-900 text-base leading-tight">
+                  Batalkan Pesanan Ini?
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pesanan akan dihapus dari antrean dapur.
+                </p>
+              </div>
+            </div>
+
+            {/* Info detail */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-semibold">ID Pesanan:</span>
+                <span className="font-extrabold text-blue-700">{orderToCancel.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-semibold">Tujuan / Meja:</span>
+                <span className="font-extrabold text-slate-800">{orderToCancel.tableInfo}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-semibold">Total Tagihan:</span>
+                <span className="font-black text-slate-900">{formatRupiah(orderToCancel.totalAmount)}</span>
+              </div>
+            </div>
+
+            {/* Warning Note */}
+            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-snug space-y-1">
+              <div className="font-bold flex items-center gap-1">
+                <span>⚠️</span> Efek Pembatalan:
+              </div>
+              <ul className="list-disc list-inside space-y-0.5 text-amber-800 font-medium">
+                <li>Nomor meja akan <strong>kembali tersedia / kosong</strong>.</li>
+                <li>Pesanan ini <strong>TIDAK akan masuk ke laporan omzet</strong>.</li>
+              </ul>
+            </div>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                disabled={isCancelling}
+                className="py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 font-extrabold text-xs text-slate-700 transition-all active:scale-95 disabled:opacity-50"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmCancelOrder(orderToCancel)}
+                disabled={isCancelling}
+                className="py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 font-black text-xs text-white shadow-md shadow-rose-600/20 transition-all active:scale-95 flex items-center justify-center disabled:opacity-50"
+              >
+                {isCancelling ? 'Membatalkan...' : 'Ya, Batalkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
@@ -271,13 +369,14 @@ interface OrderCardProps {
   queueNumber: number;
   takeawayIndex?: number;
   onComplete: () => void;
+  onCancel: () => void;
   onPrint: () => void;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, takeawayIndex, onComplete, onPrint }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, takeawayIndex, onComplete, onCancel, onPrint }) => {
   const isTakeaway = order.tableInfo.toLowerCase().includes('takeaway') || order.tableInfo.toLowerCase().includes('bungkus');
 
-  // Format label: Takeaway 1, Takeaway 2, or Meja 01
+  // Format label: Takeaway 1, Takeaway 2, or Meja 1
   const getTableLabel = () => {
     if (isTakeaway) {
       const customerExtra = order.tableInfo
@@ -353,33 +452,44 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, queueNumber, takeawayIndex
       </div>
 
       {/* Card Footer: Total & Actions */}
-      <div className="flex items-center justify-between pt-1">
-        <div>
-          <span className="text-[10px] font-semibold text-slate-400 block">Total Pesanan:</span>
-          <span className="font-black text-base text-slate-900">
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100/80">
+        <div className="shrink-0">
+          <span className="text-[10px] font-semibold text-slate-400 block leading-tight">Total Pesanan:</span>
+          <span className="font-black text-sm sm:text-[15px] text-slate-900 whitespace-nowrap block">
             {formatRupiah(order.totalAmount)}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0 justify-end">
           {/* Thermal Slip Print */}
           <button
             type="button"
             onClick={onPrint}
             title="Cetak Slip Kasir / Dapur (Thermal 58mm)"
-            className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 flex items-center justify-center hover:bg-slate-100 active:scale-95 transition-all shadow-2xs"
+            className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 flex items-center justify-center hover:bg-slate-100 active:scale-95 transition-all shadow-2xs shrink-0"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </button>
+
+          {/* Cancel Order Button */}
+          <button
+            type="button"
+            onClick={onCancel}
+            title="Batalkan Pesanan (Meja kembali kosong & tidak masuk omzet)"
+            className="h-8.5 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-extrabold text-[11px] flex items-center gap-1 transition-all shrink-0 whitespace-nowrap"
+          >
+            <XCircle className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+            <span>CANCEL ORDER</span>
           </button>
 
           {/* Selesaikan Pesanan Button */}
           <button
             type="button"
             onClick={onComplete}
-            className="h-10 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+            className="h-8.5 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-[11px] flex items-center gap-1 shadow-md shadow-emerald-600/20 transition-all shrink-0 whitespace-nowrap"
           >
-            <CheckCircle className="w-4 h-4 stroke-[2.5]" />
-            SELESAIKAN PESANAN
+            <CheckCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>SELESAIKAN</span>
           </button>
         </div>
       </div>

@@ -57,6 +57,15 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     skewerCount: 10
   },
   {
+    id: 'tc-promo-pelajar',
+    name: 'Promo Pelajar (8 tsk)',
+    category: 'taichan',
+    type: 'portion',
+    price: 15000,
+    description: 'Paket hemat sate taichan 8 tusuk promo pelajar',
+    skewerCount: 8
+  },
+  {
     id: 'tc-daging-satuan',
     name: 'Daging (1 tsk)',
     category: 'taichan',

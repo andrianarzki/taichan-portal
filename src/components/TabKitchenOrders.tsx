@@ -47,6 +47,11 @@ export const TabKitchenOrders: React.FC = () => {
     takeawayNumberMap.set(o.id, index + 1);
   });
 
+  const getOverallQueueNumber = (orderId: string) => {
+    const index = allActiveOrders.findIndex((o) => o.id === orderId);
+    return index >= 0 ? index + 1 : 1;
+  };
+
   const handleCompleteOrder = async (order: Order) => {
     try {
       const completedAt = new Date().toISOString();
@@ -183,62 +188,21 @@ export const TabKitchenOrders: React.FC = () => {
         ) : (
           <div className="space-y-4">
             
-            {/* View Mode: ALL - Separate sections for Meja and Takeaway */}
+            {/* View Mode: ALL - Sesuai Urutan Masuk (FIFO Murni: Meja & Takeaway Berurutan) */}
             {kitchenTab === 'all' && (
-              <>
-                {/* Section A: Dine In / Meja */}
-                {dineInOrders.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between px-1">
-                      <h4 className="text-xs font-black text-slate-800 tracking-wide flex items-center gap-1.5 uppercase">
-                        <span>🍽️</span> Pesanan Meja (Dine In)
-                      </h4>
-                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                        {dineInOrders.length} Pesanan
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {dineInOrders.map((order, idx) => (
-                        <OrderCard
-                          key={order.id}
-                          order={order}
-                          queueNumber={idx + 1}
-                          onComplete={() => handleCompleteOrder(order)}
-                          onCancel={() => setOrderToCancel(order)}
-                          onPrint={() => openThermalSlip(order)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Section B: Takeaway */}
-                {takeawayOrders.length > 0 && (
-                  <div className="space-y-2.5 pt-1">
-                    <div className="flex items-center justify-between px-1">
-                      <h4 className="text-xs font-black text-amber-900 tracking-wide flex items-center gap-1.5 uppercase">
-                        <span>🛍️</span> Pesanan Takeaway (Bungkus)
-                      </h4>
-                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                        {takeawayOrders.length} Pesanan
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {takeawayOrders.map((order, idx) => (
-                        <OrderCard
-                          key={order.id}
-                          order={order}
-                          queueNumber={idx + 1}
-                          takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
-                          onComplete={() => handleCompleteOrder(order)}
-                          onCancel={() => setOrderToCancel(order)}
-                          onPrint={() => openThermalSlip(order)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
+              <div className="space-y-3">
+                {allActiveOrders.map((order, idx) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    queueNumber={idx + 1}
+                    takeawayIndex={takeawayNumberMap.get(order.id)}
+                    onComplete={() => handleCompleteOrder(order)}
+                    onCancel={() => setOrderToCancel(order)}
+                    onPrint={() => openThermalSlip(order)}
+                  />
+                ))}
+              </div>
             )}
 
             {/* View Mode: DINE IN ONLY */}
@@ -249,11 +213,11 @@ export const TabKitchenOrders: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {dineInOrders.map((order, idx) => (
+                  {dineInOrders.map((order) => (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      queueNumber={idx + 1}
+                      queueNumber={getOverallQueueNumber(order.id)}
                       onComplete={() => handleCompleteOrder(order)}
                       onCancel={() => setOrderToCancel(order)}
                       onPrint={() => openThermalSlip(order)}
@@ -271,12 +235,12 @@ export const TabKitchenOrders: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {takeawayOrders.map((order, idx) => (
+                  {takeawayOrders.map((order) => (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      queueNumber={idx + 1}
-                      takeawayIndex={takeawayNumberMap.get(order.id) || idx + 1}
+                      queueNumber={getOverallQueueNumber(order.id)}
+                      takeawayIndex={takeawayNumberMap.get(order.id)}
                       onComplete={() => handleCompleteOrder(order)}
                       onCancel={() => setOrderToCancel(order)}
                       onPrint={() => openThermalSlip(order)}

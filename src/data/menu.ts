@@ -112,6 +112,14 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     description: 'Air mineral kemasan botol dingin / suhu ruang'
   },
   {
+    id: 'drink-aqua-kecil',
+    name: 'Aqua Kecil',
+    category: 'drink',
+    type: 'portion',
+    price: 2000,
+    description: 'Air mineral kemasan kecil dingin / suhu ruang'
+  },
+  {
     id: 'drink-es-teh',
     name: 'Es Tea',
     category: 'drink',
